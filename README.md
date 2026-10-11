@@ -1,5 +1,7 @@
 # dsh-notify-desktop
 
+[中文文档](README.zh.md) · English
+
 Windows toast notifications for the DSH desktop app. A session finishes, fails, or stops to ask you
 something — you get a native notification with a sound chosen for that situation, and clicking it brings
 the DSH window back to the front.

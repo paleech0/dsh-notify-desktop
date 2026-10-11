@@ -1,5 +1,7 @@
 # dsh-notify-desktop
 
+[English](README.md) · 中文
+
 给 **DSH 桌面端** 加 Windows 原生通知：会话跑完、出错、或停下来等你确认时弹一条系统通知，并播放**为这种情况挑好的音效**；
 点通知把 DSH 窗口拉回前台。
 
