@@ -1,0 +1,26 @@
+# pnpm settings for this single-package repository. pnpm 11 reads these from
+# pnpm-workspace.yaml; .npmrc only carries npm-compatible knobs.
+#
+# storeDir/cacheDir stay inside the workspace: the machine default lives on
+# another drive that this session's sandbox may not write.
+# autoInstallPeers: pnpm's default peer auto-install drags the entire DSH
+# application (and a 190 MB LibreOffice binary) in, just to typecheck this
+# plugin against its public seams.
+# nodeLinker: the sandbox denies creating directory links, and the isolated
+# store silently degrades into broken package copies without them; the
+# hoisted layout needs no links at all.
+storeDir: .pnpm-store
+cacheDir: .pnpm-cache
+autoInstallPeers: false
+strictPeerDependencies: false
+nodeLinker: hoisted
+
+# No dependency build script is needed: esbuild ships its platform binary as
+# an optional dependency and everything else is a transitive type-only dep.
+allowBuilds:
+  '@deepseek-ai/dsh-subprocess-local': false
+  '@google/genai': false
+  esbuild: false
+  koffi: false
+  node-pty: false
+  protobufjs: false

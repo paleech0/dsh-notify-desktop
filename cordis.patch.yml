@@ -1,0 +1,5 @@
+# dsh-notify-desktop bundle patch: mount the host plugin under its package name,
+# resolved through the profile's node_modules.
+- insert:
+    - id: dsh-notify-desktop
+      name: dsh-notify-desktop

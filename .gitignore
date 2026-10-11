@@ -1,0 +1,12 @@
+node_modules/
+.pnpm-store/
+.pnpm-cache/
+*.log
+.DS_Store
+coverage/
+# Left behind by a file whose Windows permissions this workspace cannot change.
+docs/images/settings-notify*.png
+*.tsbuildinfo
+_*.json
+!package.json
+!dsh.plugin.json
