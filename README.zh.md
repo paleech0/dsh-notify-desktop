@@ -70,10 +70,10 @@
 
 | | |
 |---|---|
-| 实测版本 | DSH 桌面端 **0.2.0-rc.2**，每个场景都跑过真机（[证据](docs/acceptance/2026-10-10-desktop-e2e.md)）|
-| 声明范围 | `>=0.2.0-rc.2 <0.3.0-0` —— 即整条 0.2 线，含预发布版 |
+| 实测版本 | DSH 桌面端 **0.2.1-rc.1**（2026-10-17）：版本闸门、插件加载、投影送达、宿主 Toast/音效/静音通道以及一次失焦端到端通知全部通过（[证据](docs/acceptance/2026-10-17-dsh-0.2.1-rc.1-compat.md)）；0.2.0-rc.2 仍是最早的端到端验收（[证据](docs/acceptance/2026-10-10-desktop-e2e.md)）|
+| 声明范围 | `>=0.2.0-rc.2 <0.3.0-0` —— 即整条 0.2 线，含预发布版；加载器按 `includePrerelease` 判定，0.2.1-rc.1 在范围内 |
 | 平台 | 仅 Windows 桌面端 profile；web profile 没有 Toast 通道，未验证 |
-| 0.2.1-alpha.2 | 未运行过；已把其发布的类型声明与本机 rc.2 逐行对比，本插件用到的 seam 完全一致 |
+| 0.2.1 seam 核对 | 0.2.1-rc.1 运行时镜像不带 `.d.ts`；本插件用到的全部 seam 均按其编译 JS 复核通过 |
 
 profile 加载器只看 `peerDependencies` 里名为 `@deepseek-ai/dsh` 或 `@deepseek-ai/dsh-*` 的条目，
 用 `semver.satisfies(runtime, range, { includePrerelease: true })` 判定；**不匹配会直接跳过该插件**（不加载）。
