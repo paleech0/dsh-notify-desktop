@@ -54,15 +54,18 @@
   },
   "files": [
     "lib",
+    "sounds",
     "LICENSE",
     "THIRD-PARTY-NOTICES.md",
     "CHANGELOG.md",
     "cordis.patch.yml",
     "dsh.plugin.json",
     "README.md",
-    "README.zh.md",
-    "AGENTS.md"
+    "README.zh.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "node build.mjs",
     "typecheck": "tsc --noEmit",

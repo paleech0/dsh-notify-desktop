@@ -1,11 +1,11 @@
 # dsh-notify-desktop
 
-[English](README.md) · 中文
+[![npm](https://img.shields.io/npm/v/dsh-notify-desktop.svg)](https://www.npmjs.com/package/dsh-notify-desktop) · [English](README.md) · 中文
 
 给 **DSH 桌面端** 加 Windows 原生通知：会话跑完、出错、或停下来等你确认时弹一条系统通知，并播放**为这种情况挑好的音效**；
 点通知把 DSH 窗口拉回前台。
 
-<img src="docs/images/settings.png" width="460" alt="通知设置">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="通知设置">
 
 ## 它能给你什么
 
@@ -22,6 +22,16 @@
 放在 `PATH` 里即可。
 
 ## 安装
+
+### 从 npm 安装
+
+```powershell
+& "<DSH 桌面端安装目录>\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add dsh-notify-desktop
+```
+
+然后重启 DSH 桌面端，打开 **设置 → 通知**（窗口有焦点时按 `Ctrl+,`）。
+
+### 从本地仓库安装
 
 1. 把本仓库 clone 到一个**固定目录**（profile 以链接方式指向它，之后别挪动）。
 2. 用桌面端自带 CLI 注册：

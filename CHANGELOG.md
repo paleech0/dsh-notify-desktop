@@ -6,6 +6,12 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+### Added
+
+- npm distribution: `dsh-notify-desktop` is published on npm and can be installed without cloning —
+  `dsh.cmd plugin --profile desktop add dsh-notify-desktop`. Local `link:` installs remain supported
+  for development.
+
 ### Verified
 
 - Compatibility with DSH desktop **0.2.1-rc.1** verified end to end on 2026-10-17: version gate, plugin

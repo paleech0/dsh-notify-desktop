@@ -1,12 +1,12 @@
 # dsh-notify-desktop
 
-[中文文档](README.zh.md) · English
+[![npm](https://img.shields.io/npm/v/dsh-notify-desktop.svg)](https://www.npmjs.com/package/dsh-notify-desktop) · [中文文档](README.zh.md) · English
 
 Windows toast notifications for the DSH desktop app. A session finishes, fails, or stops to ask you
 something — you get a native notification with a sound chosen for that situation, and clicking it brings
 the DSH window back to the front.
 
-<img src="docs/images/settings.png" width="460" alt="Notification settings">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="Notification settings">
 
 ## What you get
 
@@ -26,6 +26,16 @@ Requirements: Windows and the DSH desktop app (profile `desktop`), runtime 0.2.x
 optional and only used to transcode custom sounds that are not `.wav`.
 
 ## Install
+
+### From npm
+
+```powershell
+& "<DSH desktop install>\resources\runtime\cli\bin\dsh.cmd" plugin --profile desktop add dsh-notify-desktop
+```
+
+Then restart the DSH desktop app and open **Settings → Notifications** (`Ctrl+,` while focused).
+
+### From a local checkout
 
 1. Clone this repository somewhere permanent — the profile links to that folder.
 2. Register it with the desktop app's own CLI:
