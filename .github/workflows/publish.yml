@@ -1,0 +1,44 @@
+# Publish to npm when a GitHub release is published.
+# Uses npm trusted publishing (OIDC): no NPM_TOKEN, no 2FA prompt.
+# The trusted publisher connection is configured on npmjs.com for
+# paleech0/dsh-notify-desktop -> .github/workflows/publish.yml.
+name: publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
+      - name: Skip when this version is already on npm
+        id: version
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          npm view "dsh-notify-desktop@$version" version 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            "skip=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          } else {
+            "skip=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          }
+      - name: Publish
+        if: steps.version.outputs.skip != 'true'
+        run: npm publish --access public --provenance

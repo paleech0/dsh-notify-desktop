@@ -84,3 +84,10 @@
     tests/                vitest（决策、催办、投影、通知器、跳转、设置段）
     docs/spikes/          实测记录（E1 通道、S2 托盘角标）
     docs/acceptance/      端到端验收记录
+
+## 发版
+
+- npm 包名 `dsh-notify-desktop`（2026-10-17 已发布 0.1.0）。发版走 GitHub Release：`.github/workflows/publish.yml` 用 **OIDC trusted publishing** 发布，不需要 token 或 2FA。
+- npm 包页 Settings → Trusted Publisher 绑定 `paleech0/dsh-notify-desktop` + `publish.yml`（Allow npm publish）。
+- 手动流程：`pnpm run check` → 提交 → `git tag v<version>` 推送 → 在 GitHub 创建 Release（workflow 自动发布；该版本已存在时会自动跳过）。
+- 兜底：网页 staged 发布 + 账号 2FA（security key）批准（2026-10 实测；bypass-2FA token 直接发布 2027-01 起停用）。
