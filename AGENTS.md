@@ -6,7 +6,7 @@
 
 1. **不改 harness**。本插件只用公开 seam：session projection、session list、settings slot、locale、webServer route。
    不修改 `<DSH desktop install>` 下任何文件，不往官方转发事件表里加事件，不给外壳 `process.send` 发自定义 type（白名单外 = 外壳 SIGTERM 打死宿主）。
-2. **peer 依赖精确对齐运行时**。运行时 = `<DSH desktop install>`（**0.2.1-rc.1**；devDependencies 仍锁 0.2.0-rc.2 仅供构建/类型检查，且 0.2.1 运行时镜像不带 `.d.ts`）。装/升任何 `@deepseek-ai/*` 前
+2. **peer 依赖精确对齐运行时**。运行时 = `<DSH desktop install>`（**0.2.1-rc.2**；devDependencies 仍锁 0.2.0-rc.2 仅供构建/类型检查，且 0.2.1-rc.2 运行时镜像不带 `.d.ts`）。装/升任何 `@deepseek-ai/*` 前
    用 `"<DSH desktop install>\resources\runtime\cli\bin\dsh.cmd" --version` 核对；对不上就停手问人。
 3. **`lib/` 必须随源码提交**（profile 以链接方式装配，不发 npm 包）。
 4. **`pnpm run check` 必须全绿**（typecheck + vitest + build）才能提交。
@@ -62,7 +62,7 @@
 - 工具调用式提问（含 PTC）仍由投影负责（宿主拿不到它的 session）；
 - 跨源去重键 = 摘要前 40 字 + 5 秒（**不含 session**，否则配不上）；代价是同措辞问题 5 秒内只弹一条。
 
-## 事件形状（0.2.0-rc.2 实测；0.2.1-rc.1 复核未变）
+## 事件形状（0.2.0-rc.2 实测；0.2.1-rc.1/rc.2 复核未变）
 
 - 结束态：`turn/end` → `reason.kind`（completed/error/aborted/blocked/max-tokens/interrupted/forked）；
 - 审批：`approval/asked` → `approval/decided`（requestId = `data.id`）；
@@ -87,7 +87,7 @@
 
 ## 发版
 
-- npm 包名 `dsh-notify-desktop`（2026-10-17 已发布 0.1.0）。发版走 GitHub Release：`.github/workflows/publish.yml` 用 **OIDC trusted publishing** 发布，不需要 token 或 2FA。
+- npm 包名 `dsh-notify-desktop`（2026-10-18 已发布 0.1.1；0.1.0 于 2026-10-17 发布）。发版走 GitHub Release：`.github/workflows/publish.yml` 用 **OIDC trusted publishing** 发布，不需要 token 或 2FA。
 - npm 包页 Settings → Trusted Publisher 绑定 `paleech0/dsh-notify-desktop` + `publish.yml`（Allow npm publish）。
 - 手动流程：`pnpm run check` → 提交 → `git tag v<version>` 推送 → 在 GitHub 创建 Release（workflow 自动发布；该版本已存在时会自动跳过）。
 - 兜底：网页 staged 发布 + 账号 2FA（security key）批准（2026-10 实测；bypass-2FA token 直接发布 2027-01 起停用）。

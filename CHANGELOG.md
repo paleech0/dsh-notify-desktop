@@ -4,19 +4,19 @@ All notable changes to this plugin are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-
-- npm distribution: `dsh-notify-desktop` is published on npm and can be installed without cloning —
-  `dsh.cmd plugin --profile desktop add dsh-notify-desktop`. Local `link:` installs remain supported
-  for development.
+## [0.1.1] - 2026-10-18
 
 ### Verified
 
-- Compatibility with DSH desktop **0.2.1-rc.1** verified end to end on 2026-10-17: version gate, plugin
-  loading, session-projection delivery, host toast / sound / silence channels, and an unfocused
-  end-to-end notification all passed. See `docs/acceptance/2026-10-17-dsh-0.2.1-rc.1-compat.md`.
+- Compatibility with DSH desktop **0.2.1-rc.2** re-verified: version gate, plugin loading,
+  session-projection delivery, host toast / sound / silence routes, `dsh://open` focus and a real
+  Windows toast all pass. No runtime code changes. See
+  `docs/acceptance/2026-10-18-dsh-0.2.1-rc.2-compat.md`.
+
+### Added
+
+- npm distribution: `dsh-notify-desktop` is installable from npm without cloning; local `link:`
+  installs remain supported.
 
 ## [0.1.0] - 2026-10-10
 

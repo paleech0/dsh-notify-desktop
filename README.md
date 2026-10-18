@@ -90,17 +90,17 @@ same file. Playing the audio from the host is the only way to get sounds that ar
 
 | | |
 |---|---|
-| Verified on | DSH desktop **0.2.1-rc.1** (2026-10-17): version gate, plugin loading, projection delivery, host toast / sound / silence channels and an unfocused end-to-end notification all pass ([evidence](docs/acceptance/2026-10-17-dsh-0.2.1-rc.1-compat.md)); 0.2.0-rc.2 remains the original end-to-end run ([evidence](docs/acceptance/2026-10-10-desktop-e2e.md)) |
-| Declared range | `>=0.2.0-rc.2 <0.3.0-0` — the whole 0.2 line, prereleases included; the loader checks it with `includePrerelease`, so 0.2.1-rc.1 passes |
+| Verified on | DSH desktop **0.2.1-rc.2** (2026-10-18): version gate, plugin loading, projection delivery, host toast / sound / silence routes, `dsh://open` focus and a real Windows toast all pass ([evidence](docs/acceptance/2026-10-18-dsh-0.2.1-rc.2-compat.md)); earlier runs on 0.2.1-rc.1 and 0.2.0-rc.2 also passed |
+| Declared range | `>=0.2.0-rc.2 <0.3.0-0` — the whole 0.2 line, prereleases included; the loader checks it with `includePrerelease`, so 0.2.1-rc.2 passes |
 | Platform | Windows desktop profile only; the web profile has no toast channel and is untested |
-| 0.2.1 seam check | The 0.2.1-rc.1 runtime image ships no `.d.ts`; every seam used here was checked against its compiled JS and still matches |
+| 0.2.1 seam check | The 0.2.1-rc.2 runtime image ships no `.d.ts`; every seam used here was checked against its compiled JS and still matches |
 
 The profile loader reads the `peerDependencies` entries named `@deepseek-ai/dsh` or `@deepseek-ai/dsh-*`
 and checks them with `semver.satisfies(runtime, range, { includePrerelease: true })`. A mismatch makes it
 skip the plugin rather than load it. On another runtime, grant an exemption:
 
 ```powershell
-dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.1.0 --dsh-version <your-version> --accept-risk
+dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.1.1 --dsh-version <your-version> --accept-risk
 ```
 
 ## How it works

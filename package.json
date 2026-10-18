@@ -1,6 +1,6 @@
 {
   "name": "dsh-notify-desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Windows native notifications for the DSH desktop app: a session finishes, fails, or stops to ask you something and you get a toast with a per-situation sound; clicking it raises the DSH window.",
   "license": "MIT",
   "type": "module",
