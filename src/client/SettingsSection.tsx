@@ -388,6 +388,45 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
       </div>
 
       <div className="dsh_notify_card">
+        <div className="dsh_notify_cardTitle">{t('settings.situations.title')}</div>
+        <div className="dsh_notify_cardDesc">{t('settings.situations.desc')}</div>
+        <div className="dsh_notify_subcard">
+          <div className="dsh_notify_subcardTitle">{t('settings.situations.turnTitle')}</div>
+          <div className="dsh_notify_rowDesc">{t('settings.situations.turnDesc')}</div>
+          {OUTCOMES.map(entry => (
+            <Toggle
+              key={entry.field}
+              id={'dsh-notify-' + entry.field}
+              checked={settings[entry.field]}
+              disabled={!formEnabled}
+              label={scenarioLabel(entry.scenario)}
+              desc={t(SCENARIO_EXAMPLE_KEYS[entry.scenario])}
+              onChange={checked => {
+                props.set({ [entry.field]: checked } as Partial<NotifySettings>)
+              }}
+            />
+          ))}
+        </div>
+        <div className="dsh_notify_subcard">
+          <div className="dsh_notify_subcardTitle">{t('settings.situations.pendingTitle')}</div>
+          <div className="dsh_notify_rowDesc">{t('settings.situations.pendingDesc')}</div>
+          {PENDING.map(entry => (
+            <Toggle
+              key={entry.field}
+              id={'dsh-notify-' + entry.field}
+              checked={settings[entry.field]}
+              disabled={!formEnabled}
+              label={scenarioLabel(entry.scenario)}
+              desc={t(SCENARIO_EXAMPLE_KEYS[entry.scenario])}
+              onChange={checked => {
+                props.set({ [entry.field]: checked } as Partial<NotifySettings>)
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="dsh_notify_card">
         <div className="dsh_notify_cardTitle">{t('settings.customize.title')}</div>
         <div className="dsh_notify_cardDesc">{t('settings.customize.desc')}</div>
         {error === null ? null : <div className="dsh_notify_error">{error}</div>}
@@ -586,44 +625,6 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
         </Collapse>
       </div>
 
-      <div className="dsh_notify_card">
-        <div className="dsh_notify_cardTitle">{t('settings.situations.title')}</div>
-        <div className="dsh_notify_cardDesc">{t('settings.situations.desc')}</div>
-        <div className="dsh_notify_subcard">
-          <div className="dsh_notify_subcardTitle">{t('settings.situations.turnTitle')}</div>
-          <div className="dsh_notify_rowDesc">{t('settings.situations.turnDesc')}</div>
-          {OUTCOMES.map(entry => (
-            <Toggle
-              key={entry.field}
-              id={'dsh-notify-' + entry.field}
-              checked={settings[entry.field]}
-              disabled={!formEnabled}
-              label={scenarioLabel(entry.scenario)}
-              desc={t(SCENARIO_EXAMPLE_KEYS[entry.scenario])}
-              onChange={checked => {
-                props.set({ [entry.field]: checked } as Partial<NotifySettings>)
-              }}
-            />
-          ))}
-        </div>
-        <div className="dsh_notify_subcard">
-          <div className="dsh_notify_subcardTitle">{t('settings.situations.pendingTitle')}</div>
-          <div className="dsh_notify_rowDesc">{t('settings.situations.pendingDesc')}</div>
-          {PENDING.map(entry => (
-            <Toggle
-              key={entry.field}
-              id={'dsh-notify-' + entry.field}
-              checked={settings[entry.field]}
-              disabled={!formEnabled}
-              label={scenarioLabel(entry.scenario)}
-              desc={t(SCENARIO_EXAMPLE_KEYS[entry.scenario])}
-              onChange={checked => {
-                props.set({ [entry.field]: checked } as Partial<NotifySettings>)
-              }}
-            />
-          ))}
-        </div>
-      </div>
     </section>
   )
 }

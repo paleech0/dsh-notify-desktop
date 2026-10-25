@@ -9,9 +9,9 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 ### Changed
 
 - The settings section is now three cards: **Desktop notifications** (master switch, the test button
-  directly below it, and the delivery mode), **Notification setup** (one row per enabled situation with
-  its sound, its popup text and a live preview, plus the two collapsible libraries) and **Notify me in
-  which of these situations** (the two groups of switches, each row carrying an example sentence).
+  directly below it, and the delivery mode), **Notify me in which of these situations** (the two groups of
+  switches, each row carrying an example sentence) and **Notification setup** (one row per enabled situation
+  with its sound, its popup text and a live preview, plus the two collapsible libraries).
 - **Sounds are per situation** (nine: five turn ends, three waits, one reminder) instead of four groups.
   Existing group choices migrate automatically at read time - no settings are lost.
 - **Popup texts are per situation.** Each situation can save up to three named texts
@@ -31,6 +31,8 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 - Typography: the section follows the DSH theme font (`--dsw-font-family`); the template editor,
   placeholder chips and character counts use the code font (`--ds-font-family-code`) so placeholders line
   up; descriptions got a little more contrast and all numerals are tabular.
+- The situations card moved directly under the master-switch card, above "Notification setup"; the
+  example sentences lost their "例：" prefix.
 
 ### Added
 

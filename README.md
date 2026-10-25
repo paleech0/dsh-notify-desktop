@@ -62,26 +62,26 @@ this machine; every change applies immediately.
 | Send a test notification | Right below the master switch; always the default Windows sound plus a fixed toast, unaffected by the mode and every setting below — use it to check that the configuration works |
 | Delivery mode | Toast + sound (default) / Toast only (silent) / Sound only (no toast) |
 
-**Card 2 — Notification setup: the sound and text of each situation:**
-
-| Control | What it does |
-|---|---|
-| Situation row | Only the situations ticked in card 3 appear (rows follow the ticks live). Each row is: situation name + sound picker + text picker + Preview |
-| Preview | Shows and plays that situation's current text (the default text is rendered with sample values) and sound, following the delivery mode |
-| Sound picker | Two levels: the source first (Windows / author / custom), that source's sounds second |
-| Text picker | Two levels: **Default** (built-in wording) or **Custom** (that situation's saved texts, listed by name) |
-| Custom sounds (collapsible) | Add / list / remove your sound files; the transcode cache and its clear button live here too |
-| Custom texts (collapsible) | Manage the saved texts per situation: at most three each, with a name, a title and a body, an Edit button and a red Delete button (deletion is confirmed inline) |
-
-**Card 3 — Notify me in which of these situations:**
+**Card 2 — Notify me in which of these situations:**
 
 | Group | Switches |
 |---|---|
 | A session ends | Completed / Error / Aborted / Blocked / Token limit reached (each row carries an example) |
 | Waiting on you | Waiting for approval / an answer / a plan review (each row carries an example) |
 
-"Notification setup" lists only the ticked situations; unticking one hides its row but keeps its sound and
-text, so ticking it again brings them back.
+**Card 3 — Notification setup: the sound and text of each situation:**
+
+| Control | What it does |
+|---|---|
+| Situation row | Only the situations ticked in card 2 appear (rows follow the ticks live). Each row is: situation name + sound picker + text picker + Preview |
+| Preview | Shows and plays that situation's current text (the default text is rendered with sample values) and sound, following the delivery mode |
+| Sound picker | Two levels: the source first (Windows / author / custom), that source's sounds second |
+| Text picker | Two levels: **Default** (built-in wording) or **Custom** (that situation's saved texts, listed by name) |
+| Custom sounds (collapsible) | Add / list / remove your sound files; the transcode cache and its clear button live here too |
+| Custom texts (collapsible) | Manage the saved texts per situation: at most three each, with a name, a title and a body, an Edit button and a red Delete button (deletion is confirmed inline) |
+
+Ticking a situation makes its row appear in the "Notification setup" card below; unticking it only hides the
+row and keeps its sound and text, so ticking it again brings them back.
 
 ## Sounds
 

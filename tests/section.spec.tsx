@@ -134,13 +134,13 @@ function scenarioNames(container: HTMLElement): string[] {
 describe('notification settings section', () => {
   it('renders the three cards in order with every enabled situation row', async () => {
     const { container } = await render()
-    const text = container.textContent ?? ''
-    const card1 = text.indexOf(zh['settings.title'])
-    const card2 = text.indexOf(zh['settings.customize.title'])
-    const card3 = text.indexOf(zh['settings.situations.title'])
-    expect(card1).toBeGreaterThanOrEqual(0)
-    expect(card2).toBeGreaterThan(card1)
-    expect(card3).toBeGreaterThan(card2)
+    const cardTitles = [...container.querySelectorAll('.dsh_notify_cardTitle')]
+      .map(node => node.textContent ?? '')
+    expect(cardTitles).toEqual([
+      zh['settings.title'],
+      zh['settings.situations.title'],
+      zh['settings.customize.title'],
+    ])
     // eight situation switches: five outcomes + three waiting kinds
     expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(9)
     // three delivery radios
