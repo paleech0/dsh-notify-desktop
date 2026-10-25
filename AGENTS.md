@@ -6,7 +6,7 @@
 
 1. **不改 harness**。本插件只用公开 seam：session projection、session list、settings slot、locale、webServer route。
    不修改 `<DSH desktop install>` 下任何文件，不往官方转发事件表里加事件，不给外壳 `process.send` 发自定义 type（白名单外 = 外壳 SIGTERM 打死宿主）。
-2. **peer 依赖精确对齐运行时**。运行时 = `<DSH desktop install>`（**0.2.1-rc.2**；devDependencies 仍锁 0.2.0-rc.2 仅供构建/类型检查，且 0.2.1-rc.2 运行时镜像不带 `.d.ts`）。装/升任何 `@deepseek-ai/*` 前
+2. **peer 依赖精确对齐运行时**。运行时 = `<DSH desktop install>`（**0.2.1-rc.3**；devDependencies 仍锁 0.2.0-rc.2 仅供构建/类型检查，且 0.2.1 运行时镜像不带 `.d.ts`）。装/升任何 `@deepseek-ai/*` 前
    用 `"<DSH desktop install>\resources\runtime\cli\bin\dsh.cmd" --version` 核对；对不上就停手问人。
 3. **`lib/` 必须随源码提交**（profile 以链接方式装配，不发 npm 包）。
 4. **`pnpm run check` 必须全绿**（typecheck + vitest + build）才能提交。
@@ -112,7 +112,7 @@
 
 ## 诊断
 
-`Invoke-WebRequest http://127.0.0.1:19387/dsh-notify/debug` → 投影注册状态 + 客户端最近 40 条上报
+`Invoke-WebRequest http://127.0.0.1:<桌面端端口>/dsh-notify/debug` → 投影注册状态 + 客户端最近 40 条上报
 （每条决定、通道选择、平台结果）。Windows 通知不进操作中心，排查全靠它。
 
 ## 目录

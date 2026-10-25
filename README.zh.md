@@ -120,12 +120,12 @@
 | | |
 |---|---|
 | 实测版本 | DSH 桌面端 **0.2.1-rc.3**：插件加载、会话投影、宿主 Toast / 音效 / 静音 / 文本模板路由，以及设置页里的预览、测试通知、缓存清理均实测通过（[证据](docs/acceptance/2026-10-25-notification-customization.md)）；更早的 0.2.1-rc.2 / rc.1 / 0.2.0-rc.2 验收记录见 `docs/acceptance/` |
-| 声明范围 | `>=0.2.0-rc.2 <0.3.0-0` —— 整条 0.2 线（含预发布）；加载器按 `includePrerelease` 判定，0.2.1-rc.3 在范围内 |
+| 声明范围 | `>=0.2.0-rc.2 <0.3.0-0`（semver 加载闸门）—— 表示**加载器会放行**从 0.2.0-rc.2 起的整条 0.2 线（含预发布）；**只有上表实测版本经过验证，范围内其它版本不保证**。0.2.0-rc.1 及更早、0.3.x 不在范围内 |
 | 平台 | 仅 Windows 桌面端 profile；web profile 没有 Toast 通道，未验证 |
 | seam 核对 | 0.2.1 运行时镜像不带 `.d.ts`；本插件用到的全部 seam 均按其编译 JS 复核通过 |
 
-profile 加载器只看 `peerDependencies` 里名为 `@deepseek-ai/dsh` 或 `@deepseek-ai/dsh-*` 的条目，
-用 `semver.satisfies(runtime, range, { includePrerelease: true })` 判定；**不匹配会直接跳过该插件**（不加载）。
+兼容声明同时写在 `dsh.engines.dsh` 和 `peerDependencies.@deepseek-ai/dsh`（两处保持一致）；
+加载器用 `semver.satisfies(runtime, range, { includePrerelease: true })` 判定，**不匹配会直接跳过该插件**（不加载）。
 运行时不在范围内时，可以显式豁免：
 
 ```powershell
@@ -158,10 +158,10 @@ dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.2.0 --dsh-ve
 
 ## 排查
 
-Windows 通知**不进操作中心**，所以诊断接口是唯一的证据通道：
+Windows 通知**不进操作中心**，所以诊断接口是唯一的证据通道。端口每次启动可能不同，取当前桌面端 Web 地址里的那个：
 
 ```powershell
-Invoke-WebRequest http://127.0.0.1:19387/dsh-notify/debug
+Invoke-WebRequest http://127.0.0.1:<桌面端端口>/dsh-notify/debug
 ```
 
 返回投影注册状态、客户端最近 40 条上报（每条决定、通道选择、平台结果），以及音效链路状态

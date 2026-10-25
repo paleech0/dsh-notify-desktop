@@ -135,13 +135,13 @@ this file by hand** — the client loads it once at start-up.
 | | |
 |---|---|
 | Verified on | DSH desktop **0.2.1-rc.3**: plugin loading, projection delivery, host toast / sound / silence / text-template routes, plus the settings page's preview, test notification and cache clearing all pass ([evidence](docs/acceptance/2026-10-25-notification-customization.md)); earlier acceptance runs on 0.2.1-rc.2 / rc.1 / 0.2.0-rc.2 are kept in `docs/acceptance/` |
-| Declared range | `>=0.2.0-rc.2 <0.3.0-0` — the whole 0.2 line, prereleases included; the loader checks it with `includePrerelease`, so 0.2.1-rc.3 passes |
+| Declared range | `>=0.2.0-rc.2 <0.3.0-0` (the loader's semver gate) — this lets the loader **accept** the whole 0.2 line from 0.2.0-rc.2 on, prereleases included; **only the versions verified above are tested — anything else inside the range is allowed but not guaranteed**. 0.2.0-rc.1 and older, and 0.3.x, are outside it |
 | Platform | Windows desktop profile only; the web profile has no toast channel and is untested |
 | Seam check | The 0.2.1 runtime image ships no `.d.ts`; every seam used here was checked against its compiled JS and still matches |
 
-The profile loader reads the `peerDependencies` entries named `@deepseek-ai/dsh` or `@deepseek-ai/dsh-*`
-and checks them with `semver.satisfies(runtime, range, { includePrerelease: true })`. A mismatch makes it
-skip the plugin rather than load it. On another runtime, grant an exemption:
+The compatibility claim lives in both `dsh.engines.dsh` and `peerDependencies.@deepseek-ai/dsh` (kept
+identical). The loader checks it with `semver.satisfies(runtime, range, { includePrerelease: true })`; a
+mismatch makes it skip the plugin rather than load it. On another runtime, grant an exemption:
 
 ```powershell
 dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.2.0 --dsh-version <your-version> --accept-risk
@@ -177,10 +177,11 @@ a bounded queue. A cross-source key keeps the two copies from double-toasting.
 
 ## Troubleshooting
 
-Windows toasts never reach the Action Center, so the diagnostics route is the only evidence channel:
+Windows toasts never reach the Action Center, so the diagnostics route is the only evidence channel.
+The port can change per launch — use the one in the desktop app's current web address:
 
 ```powershell
-Invoke-WebRequest http://127.0.0.1:19387/dsh-notify/debug
+Invoke-WebRequest http://127.0.0.1:<desktop-port>/dsh-notify/debug
 ```
 
 It returns the projection registration state, the last 40 client reports (every decision, channel choice
