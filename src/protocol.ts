@@ -32,6 +32,16 @@ export const REPORT_LIMIT = 40
 export const HOST_TOAST_ROUTE = '/dsh-notify/toast'
 
 /**
+ * The sound-only route: play one catalog sound without raising a toast.
+ *
+ * Every sound used to ride on the toast that showed it, which made
+ * "sound without a toast" impossible. The host resolves the id exactly as it
+ * does for a toast — catalog id only, never a path — and plays it in its own
+ * child, so the silence route and the 8-second cap apply here too.
+ */
+export const SOUND_ROUTE = '/dsh-notify/sound'
+
+/**
  * The route the client polls for questions the host observed on the
  * `user-questions/request` waterfall.
  *
@@ -84,3 +94,11 @@ export const PICK_FILE_ROUTE = '/dsh-notify/pick-file'
  * folder; the settings section shows the占用 and offers to clear it.
  */
 export const SOUND_CACHE_ROUTE = '/dsh-notify/sound-cache'
+
+/**
+ * The user's saved popup texts: GET returns every situation's library, POST
+ * saves or deletes one entry. The templates live on disk (next to the custom
+ * sounds) so hand-written wording survives a storage clear and can be copied
+ * between machines; only the chosen id stays in the client settings.
+ */
+export const TEXT_TEMPLATES_ROUTE = '/dsh-notify/text-templates'

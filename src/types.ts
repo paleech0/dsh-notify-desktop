@@ -9,6 +9,10 @@
  * is touched and no forwarded-event allowlist is extended.
  */
 import type {} from '@deepseek-ai/dsh-session-projection/types'
+import {
+  SCENARIO_IDS,
+  type NotifyScenario,
+} from './scenarios.ts'
 
 /** Why a turn ended, restricted to the kinds worth a notification. */
 export type NotifyReason = 'completed' | 'error' | 'aborted' | 'blocked' | 'max-tokens'
@@ -147,30 +151,61 @@ export function resolveSound(id: SoundId): ResolvedSound {
 /** Every selectable id, for validation. */
 export const SOUND_IDS: readonly string[] = Object.freeze(SOUND_CHOICES.map(choice => choice.id))
 
+/** The chosen sound per situation. */
+export type NotifySounds = Readonly<Record<NotifyScenario, SoundId>>
+
+/** Every situation's chosen popup text ('default', or a saved template id). */
+export type NotifyTexts = Readonly<Record<NotifyScenario, string>>
+
+/** The choice that means "use the built-in default text". */
+export const DEFAULT_TEXT_CHOICE = 'default'
+
 /**
- * The four situations that can sound different.
+ * How a notification is delivered.
  *
- * Nine scenarios would be more flexible but a nuisance to configure; these four
- * match what a user actually distinguishes: something finished, something
- * failed, something is waiting for you, and the reminder that it is still
- * waiting.
+ * `both` raises the toast and plays the chosen sound (the historical behaviour);
+ * `notify` raises a muted toast; `sound` plays the chosen sound without raising
+ * anything — the host's sound-only route, because every sound in the catalog
+ * otherwise rides on the toast that shows it.
  */
-export const SOUND_GROUPS = Object.freeze(['finished', 'error', 'attention', 'reminder'] as const)
+export const NOTIFY_MODES = Object.freeze(['both', 'notify', 'sound'] as const)
 
-/** One situation group. */
-export type SoundGroup = (typeof SOUND_GROUPS)[number]
+/** One delivery mode. */
+export type NotifyMode = (typeof NOTIFY_MODES)[number]
 
-/** The chosen sound per situation group. */
-export type NotifySounds = Readonly<Record<SoundGroup, SoundId>>
+/** The built-in title: what the composed title was before templates existed. */
+export const DEFAULT_TITLE_TEMPLATE = '{工作区} · {状态}'
 
-/** The client-persisted notification preferences. */
+/** The built-in body: just the summary. */
+export const DEFAULT_BODY_TEMPLATE = '{内容}'
+
+/**
+ * A global template carried over from the first template iteration.
+ *
+ * That iteration stored one title/body pair for every notification. The
+ * per-situation model replaced it; a customized pair is written into each
+ * enabled situation's library on the first load after the upgrade and the field
+ * is then dropped from the settings.
+ */
+export interface LegacyTextTemplates {
+  readonly title: string
+  readonly body: string
+}
+
+/**
+ * The client-persisted notification preferences.
+ */
 export interface NotifySettings {
   /** Master switch; false disables every notification. */
   readonly enabled: boolean
-  /** Whether toasts play a sound at all; false silences every group. */
-  readonly soundEnabled: boolean
-  /** The sound each situation group plays. */
+  /** How a notification is delivered: toast, sound, or both. */
+  readonly mode: NotifyMode
+  /** The sound each situation plays. */
   readonly sounds: NotifySounds
+  /** The popup text each situation uses ('default' or a saved template id). */
+  readonly texts: NotifyTexts
+  /** Set only while the pre-per-situation template pair still needs moving to disk. */
+  readonly legacyText: LegacyTextTemplates | null
   readonly notifyCompleted: boolean
   readonly notifyError: boolean
   readonly notifyAborted: boolean
@@ -186,6 +221,29 @@ export interface NotifySettings {
   readonly remindAfterMinutes: number
 }
 
+/** The default sound for every situation, one entry per scenario. */
+function defaultSounds(): NotifySounds {
+  const sounds = {} as Record<NotifyScenario, SoundId>
+  for (const scenario of SCENARIO_IDS) {
+    switch (scenario) {
+      case 'error': sounds[scenario] = 'file:error'; break
+      case 'approval':
+      case 'question':
+      case 'plan-review': sounds[scenario] = 'file:ding'; break
+      case 'reminder': sounds[scenario] = 'file:exclamation'; break
+      default: sounds[scenario] = 'file:chimes'; break
+    }
+  }
+  return Object.freeze(sounds)
+}
+
+/** The default text choice for every situation: the built-in wording. */
+function defaultTexts(): NotifyTexts {
+  const texts = {} as Record<NotifyScenario, string>
+  for (const scenario of SCENARIO_IDS) texts[scenario] = DEFAULT_TEXT_CHOICE
+  return Object.freeze(texts)
+}
+
 /**
  * Defaults: everything on, sounds on, one reminder after ten minutes.
  *
@@ -196,13 +254,10 @@ export interface NotifySettings {
  */
 export const DEFAULT_SETTINGS: NotifySettings = Object.freeze({
   enabled: true,
-  soundEnabled: true,
-  sounds: Object.freeze({
-    finished: 'file:chimes',
-    error: 'file:error',
-    attention: 'file:ding',
-    reminder: 'file:exclamation',
-  }) satisfies NotifySounds,
+  mode: 'both',
+  sounds: defaultSounds(),
+  texts: defaultTexts(),
+  legacyText: null,
   notifyCompleted: true,
   notifyError: true,
   notifyAborted: false,

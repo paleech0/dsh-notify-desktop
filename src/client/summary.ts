@@ -4,9 +4,9 @@
  *
  * The projected body is the assistant's own markdown; pasted into a Windows
  * toast it shows asterisks, pipe tables and code fences across the one or two
- * lines the shell renders. This module flattens it to readable text, bounds it
- * to the three rendered lines the toast shows, and composes the
- * "workspace · status" title.
+ * lines the shell renders. This module flattens it to readable text and bounds
+ * it to the three rendered lines the toast shows; the title/body composition
+ * itself lives in the user-facing templates (template.ts).
  */
 
 /**
@@ -64,17 +64,4 @@ export function workspaceName(cwd: string | undefined): string {
   if (cwd === undefined) return ''
   const parts = cwd.split(/[\\/]+/).filter(part => part !== '')
   return parts.at(-1) ?? ''
-}
-
-/**
- * Compose the toast title: who it is about, then the short status.
- * @param label - the workspace name (falls back to the session title).
- * @param statusLabel - the localized short status, e.g. 任务完成.
- * @returns the bounded title.
- */
-export function toastTitle(label: string, statusLabel: string): string {
-  const name = label.trim().replace(/\s+/g, ' ')
-  if (name === '') return statusLabel
-  const bounded = name.length > TITLE_NAME_LIMIT ? name.slice(0, TITLE_NAME_LIMIT - 1) + '…' : name
-  return bounded + ' · ' + statusLabel
 }

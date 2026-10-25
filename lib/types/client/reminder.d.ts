@@ -14,6 +14,8 @@ export interface PendingWait {
     readonly sessionId: string;
     readonly requestId: string;
     readonly kind: PendingKind;
+    /** The ask's one-line summary; the reminder toast's `{内容}` placeholder. */
+    readonly summary: string;
     /** When the wait was first observed (client clock, ms). */
     readonly firstSeenAt: number;
     /** Whether the single reminder for this wait has already been sent. */

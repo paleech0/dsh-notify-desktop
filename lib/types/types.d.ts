@@ -1,3 +1,4 @@
+import { type NotifyScenario } from './scenarios.ts';
 /** Why a turn ended, restricted to the kinds worth a notification. */
 export type NotifyReason = 'completed' | 'error' | 'aborted' | 'blocked' | 'max-tokens';
 /** A live user interaction currently blocking a session. */
@@ -93,27 +94,53 @@ export interface ResolvedSound {
 export declare function resolveSound(id: SoundId): ResolvedSound;
 /** Every selectable id, for validation. */
 export declare const SOUND_IDS: readonly string[];
+/** The chosen sound per situation. */
+export type NotifySounds = Readonly<Record<NotifyScenario, SoundId>>;
+/** Every situation's chosen popup text ('default', or a saved template id). */
+export type NotifyTexts = Readonly<Record<NotifyScenario, string>>;
+/** The choice that means "use the built-in default text". */
+export declare const DEFAULT_TEXT_CHOICE = "default";
 /**
- * The four situations that can sound different.
+ * How a notification is delivered.
  *
- * Nine scenarios would be more flexible but a nuisance to configure; these four
- * match what a user actually distinguishes: something finished, something
- * failed, something is waiting for you, and the reminder that it is still
- * waiting.
+ * `both` raises the toast and plays the chosen sound (the historical behaviour);
+ * `notify` raises a muted toast; `sound` plays the chosen sound without raising
+ * anything — the host's sound-only route, because every sound in the catalog
+ * otherwise rides on the toast that shows it.
  */
-export declare const SOUND_GROUPS: readonly ["finished", "error", "attention", "reminder"];
-/** One situation group. */
-export type SoundGroup = (typeof SOUND_GROUPS)[number];
-/** The chosen sound per situation group. */
-export type NotifySounds = Readonly<Record<SoundGroup, SoundId>>;
-/** The client-persisted notification preferences. */
+export declare const NOTIFY_MODES: readonly ["both", "notify", "sound"];
+/** One delivery mode. */
+export type NotifyMode = (typeof NOTIFY_MODES)[number];
+/** The built-in title: what the composed title was before templates existed. */
+export declare const DEFAULT_TITLE_TEMPLATE = "{\u5DE5\u4F5C\u533A} \u00B7 {\u72B6\u6001}";
+/** The built-in body: just the summary. */
+export declare const DEFAULT_BODY_TEMPLATE = "{\u5185\u5BB9}";
+/**
+ * A global template carried over from the first template iteration.
+ *
+ * That iteration stored one title/body pair for every notification. The
+ * per-situation model replaced it; a customized pair is written into each
+ * enabled situation's library on the first load after the upgrade and the field
+ * is then dropped from the settings.
+ */
+export interface LegacyTextTemplates {
+    readonly title: string;
+    readonly body: string;
+}
+/**
+ * The client-persisted notification preferences.
+ */
 export interface NotifySettings {
     /** Master switch; false disables every notification. */
     readonly enabled: boolean;
-    /** Whether toasts play a sound at all; false silences every group. */
-    readonly soundEnabled: boolean;
-    /** The sound each situation group plays. */
+    /** How a notification is delivered: toast, sound, or both. */
+    readonly mode: NotifyMode;
+    /** The sound each situation plays. */
     readonly sounds: NotifySounds;
+    /** The popup text each situation uses ('default' or a saved template id). */
+    readonly texts: NotifyTexts;
+    /** Set only while the pre-per-situation template pair still needs moving to disk. */
+    readonly legacyText: LegacyTextTemplates | null;
     readonly notifyCompleted: boolean;
     readonly notifyError: boolean;
     readonly notifyAborted: boolean;

@@ -1,21 +1,35 @@
 /**
- * The settings-page section: master switch, sound switch, per-outcome and
- * waiting-on-you switches, the reminder delay, and a test button. Every control
- * writes straight through to the persisted store.
+ * The settings-page section, three cards.
+ *
+ *  1. "Desktop notifications": the master switch, the test button tucked right
+ *     under it, and the delivery mode.
+ *  2. "Notification setup": one row per enabled situation with its sound, its
+ *     popup text and a live preview, then the two collapsible libraries (custom
+ *     sounds with the transcode cache inside, custom texts with their editor).
+ *  3. "Notify me in which situations": the two groups of situation switches,
+ *     each row carrying an example sentence.
+ *
+ * Every control writes straight through to the persisted store, except the
+ * sound and text libraries, which live in the host (a folder and a JSON file).
  */
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import type { ReactNode } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { NotifyMode, NotifySettings, SoundId, SoundLibrary } from '../types.ts'
 import {
-  SOUND_CHOICES,
-  type NotifySettings,
-  type SoundGroup,
-  type SoundId,
-  type SoundLibrary,
-} from '../types.ts'
+  SCENARIO_IDS,
+  type NotifyScenario,
+} from '../scenarios.ts'
 import { fmt, type NotifyKey } from './locales.ts'
+import type { TemplateParts } from './template.ts'
 import type { SoundCacheInfo } from './notifier.ts'
+import { shortScenarioKey } from './notifier.ts'
 import { SoundPicker } from './SoundPicker.tsx'
+import { TextPicker } from './TextPicker.tsx'
+import { TextManager } from './TextManager.tsx'
+import { scenarioEnabled } from './decision.ts'
 import type { SettingsStore } from './settings.ts'
+import type { TextStore } from './texts.ts'
 
 /** Human-readable byte size for the cache row. */
 function formatBytes(bytes: number): string {
@@ -30,8 +44,12 @@ export interface NotifySectionInjected {
   store: SettingsStore
   /** Persist one patch. */
   set: (patch: Partial<NotifySettings>) => void
-  /** Show one test toast, optionally playing a specific sound. */
-  sendTest: (sound?: SoundId) => void
+  /** Show the test notification: fixed copy, fixed default sound. */
+  sendTest: () => void
+  /** Audition one situation the way the current delivery mode would. */
+  previewScenario: (scenario: NotifyScenario) => void
+  /** The saved popup texts, loaded from the host. */
+  texts: TextStore
   /** Open the Windows file picker and return the chosen wav path ('' = cancelled). */
   pickFile: () => Promise<string>
   /** Read the sound library: the plugin's sounds and the user's imports. */
@@ -64,14 +82,16 @@ function Toggle(props: {
   checked: boolean
   label: string
   desc?: string
+  disabled?: boolean
   onChange: (checked: boolean) => void
 }): JSX.Element {
   return (
-    <div className="dsh_notify_row">
+    <div className={props.disabled === true ? 'dsh_notify_row dsh_notify_rowDisabled' : 'dsh_notify_row'}>
       <input
         id={props.id}
         type="checkbox"
         checked={props.checked}
+        disabled={props.disabled === true}
         onChange={event => {
           props.onChange(event.target.checked)
         }}
@@ -84,26 +104,59 @@ function Toggle(props: {
   )
 }
 
+/** A collapsed/expanded block inside the customization card. */
+function Collapse(props: {
+  id: string
+  title: string
+  count: string
+  open: boolean
+  onToggle: () => void
+  children: ReactNode
+}): JSX.Element {
+  return (
+    <div className="dsh_notify_customRow dsh_notify_collapse">
+      <button
+        type="button"
+        className="dsh_notify_collapseHeader"
+        id={props.id}
+        aria-expanded={props.open}
+        onClick={props.onToggle}
+      >
+        <span className="dsh_notify_pickerCaretSmall" data-open={props.open} aria-hidden="true" />
+        <span className="dsh_notify_collapseLabel">{props.title}</span>
+        <span className="dsh_notify_collapseCount">{props.count}</span>
+      </button>
+      {props.open ? <div className="dsh_notify_collapseBody">{props.children}</div> : null}
+    </div>
+  )
+}
+
 /** The switch-valued settings keys (everything but the reminder delay). */
 type BooleanField = {
   [K in keyof NotifySettings]: NotifySettings[K] extends boolean ? K : never
 }[keyof NotifySettings]
 
 /** The turn-outcome switches, in presentation order. */
-const OUTCOMES: ReadonlyArray<{ field: BooleanField; key: NotifyKey }> = [
-  { field: 'notifyCompleted', key: 'settings.when.completed' },
-  { field: 'notifyError', key: 'settings.when.error' },
-  { field: 'notifyAborted', key: 'settings.when.aborted' },
-  { field: 'notifyBlocked', key: 'settings.when.blocked' },
-  { field: 'notifyMaxTokens', key: 'settings.when.maxTokens' },
+const OUTCOMES: ReadonlyArray<{ field: BooleanField; scenario: NotifyScenario }> = [
+  { field: 'notifyCompleted', scenario: 'completed' },
+  { field: 'notifyError', scenario: 'error' },
+  { field: 'notifyAborted', scenario: 'aborted' },
+  { field: 'notifyBlocked', scenario: 'blocked' },
+  { field: 'notifyMaxTokens', scenario: 'max-tokens' },
 ]
 
-/** The four situations whose sound is configurable, in presentation order. */
-const SOUND_ROWS: ReadonlyArray<{ group: SoundGroup; key: NotifyKey }> = [
-  { group: 'finished', key: 'settings.sounds.finished' },
-  { group: 'error', key: 'settings.sounds.error' },
-  { group: 'attention', key: 'settings.sounds.attention' },
-  { group: 'reminder', key: 'settings.sounds.reminder' },
+/** The waiting-on-you switches, in presentation order. */
+const PENDING: ReadonlyArray<{ field: BooleanField; scenario: NotifyScenario }> = [
+  { field: 'notifyApproval', scenario: 'approval' },
+  { field: 'notifyQuestion', scenario: 'question' },
+  { field: 'notifyPlanReview', scenario: 'plan-review' },
+]
+
+/** The delivery modes, in presentation order. */
+const MODES: ReadonlyArray<{ value: NotifyMode; labelKey: NotifyKey; descKey: NotifyKey }> = [
+  { value: 'both', labelKey: 'settings.mode.both', descKey: 'settings.mode.bothDesc' },
+  { value: 'notify', labelKey: 'settings.mode.notify', descKey: 'settings.mode.notifyDesc' },
+  { value: 'sound', labelKey: 'settings.mode.sound', descKey: 'settings.mode.soundDesc' },
 ]
 
 /** The locale key of each selectable sound; an unknown id falls back to the first. */
@@ -130,12 +183,31 @@ const SOUND_LABEL_KEYS: Readonly<Record<string, NotifyKey>> = {
   silent: 'settings.sound.silent',
 }
 
-/** The waiting-on-you switches, in presentation order. */
-const PENDING: ReadonlyArray<{ field: BooleanField; key: NotifyKey }> = [
-  { field: 'notifyApproval', key: 'settings.pending.approval' },
-  { field: 'notifyQuestion', key: 'settings.pending.question' },
-  { field: 'notifyPlanReview', key: 'settings.pending.planReview' },
-]
+/** The display name of each situation. */
+const SCENARIO_LABEL_KEYS: Readonly<Record<NotifyScenario, NotifyKey>> = {
+  completed: 'settings.scenario.completed',
+  error: 'settings.scenario.error',
+  aborted: 'settings.scenario.aborted',
+  blocked: 'settings.scenario.blocked',
+  'max-tokens': 'settings.scenario.maxTokens',
+  approval: 'settings.scenario.approval',
+  question: 'settings.scenario.question',
+  'plan-review': 'settings.scenario.planReview',
+  reminder: 'settings.scenario.reminder',
+}
+
+/** The example sentence shown beside each switch in the situations card. */
+const SCENARIO_EXAMPLE_KEYS: Readonly<Record<NotifyScenario, NotifyKey>> = {
+  completed: 'settings.scenario.completedExample',
+  error: 'settings.scenario.errorExample',
+  aborted: 'settings.scenario.abortedExample',
+  blocked: 'settings.scenario.blockedExample',
+  'max-tokens': 'settings.scenario.maxTokensExample',
+  approval: 'settings.scenario.approvalExample',
+  question: 'settings.scenario.questionExample',
+  'plan-review': 'settings.scenario.planReviewExample',
+  reminder: 'settings.scenario.reminder',
+}
 
 /**
  * The notification settings section.
@@ -144,15 +216,24 @@ const PENDING: ReadonlyArray<{ field: BooleanField; key: NotifyKey }> = [
  */
 export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
   const settings = useSyncExternalStore(props.store.subscribe, props.store.getSnapshot)
+  const texts = useSyncExternalStore(props.texts.subscribe, props.texts.getSnapshot)
   const [error, setError] = useState<string | null>(null)
   const [cache, setCache] = useState<SoundCacheInfo | null>(null)
   const [cacheNote, setCacheNote] = useState<string | null>(null)
   const [library, setLibrary] = useState<SoundLibrary>({ author: [], custom: [] })
   const [libraryNote, setLibraryNote] = useState<string | null>(null)
+  const [soundConfirm, setSoundConfirm] = useState<string | null>(null)
+  const [soundsOpen, setSoundsOpen] = useState(false)
+  const [textsOpen, setTextsOpen] = useState(false)
   const t = props.t
   const readCache = props.cacheInfo
   const wipeCache = props.clearCache
   const readLibrary = props.loadLibrary
+  // With the master switch off every delivery control is inert — the mode, the
+  // per-situation sound and text pickers, the previews, the test, the reminder
+  // delay and the situation switches. Only the configuration surfaces stay live:
+  // the custom-sound library (with its cache) and the custom texts.
+  const formEnabled = settings.enabled
 
   useEffect(() => {
     void readCache().then(info => {
@@ -191,40 +272,70 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
     if (file === '') return
     const name = await props.importSound(file)
     if (name === null) {
-      setError(t('settings.library.addFailed'))
+      setError(t('settings.soundLibrary.addFailed'))
       return
     }
     setError(null)
-    setLibraryNote(fmt(t('settings.library.added'), { name }))
+    setLibraryNote(fmt(t('settings.soundLibrary.added'), { name }))
     await refreshLibrary()
   }
 
-  /** Remove one imported sound and reload the list. */
+  /** Remove one imported sound after the inline confirmation. */
   const removeCustomSound = async (id: string): Promise<void> => {
     const removed = await props.deleteSound(id)
-    setLibraryNote(removed ? t('settings.library.removed') : t('settings.library.addFailed'))
+    setSoundConfirm(null)
+    setLibraryNote(removed ? t('settings.soundLibrary.removed') : t('settings.soundLibrary.addFailed'))
     if (removed) await refreshLibrary()
   }
 
   /**
-   * Preview one sound.
+   * Audition one situation.
    *
-   * A group set to the custom sound has nothing to play until a file is chosen,
-   * so the click explains that instead of raising a toast with the system chime.
+   * A library sound that is no longer in the folder (deleted, or the settings
+   * outlived the file) must not silently preview the system chime instead.
    */
-  const preview = (sound: SoundId): void => {
-    // A library sound that is no longer in the folder (deleted, or the settings
-    // outlived the file) must not silently preview the system chime instead.
+  const preview = (scenario: NotifyScenario): void => {
+    const sound = settings.sounds[scenario]
     const fromLibrary = sound.startsWith('custom:') || sound.startsWith('author:')
     const known = library.custom.some(item => item.id === sound)
       || library.author.some(item => item.id === sound)
     if (fromLibrary && !known) {
-      setError(t('settings.library.missing'))
+      setError(t('settings.soundLibrary.missing'))
       return
     }
     setError(null)
-    props.sendTest(sound)
+    props.previewScenario(scenario)
   }
+
+  /** The label of one situation. */
+  const scenarioLabel = (scenario: NotifyScenario): string => t(SCENARIO_LABEL_KEYS[scenario])
+
+  /** The placeholder values one editor preview renders with. */
+  const previewParts = (scenario: NotifyScenario): TemplateParts => ({
+    workspace: t('notify.previewWorkspace'),
+    status: t(shortScenarioKey(scenario)),
+    body: t('notify.previewSampleBody'),
+    minutes: String(settings.remindAfterMinutes),
+  })
+
+  /** The body fallback of one situation's built-in wording. */
+  const previewFallback = (scenario: NotifyScenario): string => {
+    switch (scenario) {
+      case 'approval':
+      case 'question':
+      case 'plan-review':
+        return t('notify.pendingBody')
+      case 'reminder':
+        return fmt(t('notify.reminderBody'), { minutes: String(settings.remindAfterMinutes) })
+      default:
+        return t('notify.emptyBody')
+    }
+  }
+
+  // Only situations the user switched on get a row and a text group; the
+  // reminder has no switch and rides along with the waiting situations.
+  const visibleScenarios = SCENARIO_IDS.filter(scenario => scenarioEnabled(settings, scenario))
+  const textCount = SCENARIO_IDS.reduce((sum, scenario) => sum + texts[scenario].length, 0)
 
   return (
     <section className="dsh_notify_section">
@@ -240,56 +351,120 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
             props.set({ enabled: checked })
           }}
         />
-        <Toggle
-          id="dsh-notify-sound"
-          checked={settings.soundEnabled}
-          label={t('settings.sound')}
-          desc={t('settings.soundDesc')}
-          onChange={checked => {
-            props.set({ soundEnabled: checked })
-          }}
-        />
+        <div className="dsh_notify_testBlock">
+          <button
+            type="button"
+            className="dsh_notify_button"
+            disabled={!formEnabled}
+            onClick={() => {
+              props.sendTest()
+            }}
+          >
+            {t('settings.test.button')}
+          </button>
+          <div className="dsh_notify_rowDesc">{t('settings.test.desc')}</div>
+        </div>
+        <div className="dsh_notify_modeBlock">
+          <div className="dsh_notify_modeLabel">{t('settings.mode.label')}</div>
+          {MODES.map(mode => (
+            <label key={mode.value} className={formEnabled ? 'dsh_notify_modeRow' : 'dsh_notify_modeRow dsh_notify_modeRowDisabled'}>
+              <input
+                type="radio"
+                name="dsh-notify-mode"
+                disabled={!formEnabled}
+                checked={settings.mode === mode.value}
+                onChange={() => {
+                  props.set({ mode: mode.value })
+                }}
+              />
+              <span className="dsh_notify_modeText">
+                <span className="dsh_notify_rowLabel">{t(mode.labelKey)}</span>
+                <span className="dsh_notify_rowDesc">{t(mode.descKey)}</span>
+              </span>
+            </label>
+          ))}
+          <div className="dsh_notify_rowDesc">{t('settings.mode.desc')}</div>
+        </div>
       </div>
 
       <div className="dsh_notify_card">
-        <div className="dsh_notify_cardTitle">{t('settings.sounds.title')}</div>
-        <div className="dsh_notify_cardDesc">{t('settings.sounds.desc')}</div>
-        <div className="dsh_notify_sounds">
-          {SOUND_ROWS.map(row => (
-            <div className="dsh_notify_soundRow" key={row.group}>
-              <span className="dsh_notify_soundLabel">{t(row.key)}</span>
+        <div className="dsh_notify_cardTitle">{t('settings.customize.title')}</div>
+        <div className="dsh_notify_cardDesc">{t('settings.customize.desc')}</div>
+        {error === null ? null : <div className="dsh_notify_error">{error}</div>}
+        <div className="dsh_notify_scenarios">
+          {visibleScenarios.map(scenario => (
+            <div className="dsh_notify_scenarioRow" key={scenario}>
+              <span className="dsh_notify_scenarioName">{scenarioLabel(scenario)}</span>
+              <span className="dsh_notify_rowPrefix">{t('settings.scenario.sound')}</span>
               <SoundPicker
-                value={settings.sounds[row.group]}
+                value={settings.sounds[scenario]}
                 library={library}
                 labelOf={soundLabel}
                 t={t}
+                disabled={!formEnabled}
                 onPick={chosen => {
-                  props.set({ sounds: { ...settings.sounds, [row.group]: chosen } })
+                  const nextSounds: Record<NotifyScenario, SoundId> = { ...settings.sounds, [scenario]: chosen }
+                  props.set({ sounds: nextSounds })
+                }}
+              />
+              <span className="dsh_notify_rowPrefix">{t('settings.scenario.text')}</span>
+              <TextPicker
+                value={settings.texts[scenario]}
+                options={texts[scenario]}
+                t={t}
+                disabled={!formEnabled}
+                onPick={chosen => {
+                  const nextTexts: Record<NotifyScenario, string> = { ...settings.texts, [scenario]: chosen }
+                  props.set({ texts: nextTexts })
                 }}
               />
               <button
                 type="button"
-                className="dsh_notify_button dsh_notify_preview"
-                style={{ width: '68px' }}
+                className="dsh_notify_button dsh_notify_scenarioPreview"
+                disabled={!formEnabled}
                 onClick={() => {
-                  preview(settings.sounds[row.group])
+                  preview(scenario)
                 }}
               >
-                {t('settings.sounds.preview')}
+                {t('settings.scenario.preview')}
               </button>
             </div>
           ))}
         </div>
-        <div className="dsh_notify_customRow">
-          <span className="dsh_notify_soundLabel">{t('settings.library.title')}</span>
+        {visibleScenarios.includes('reminder') ? (
+          <div className="dsh_notify_remindLine">
+            <span>{t('settings.remind.prefix')}</span>
+            <label className="dsh_notify_minutes">
+              <input
+                type="number"
+                min={1}
+                max={240}
+                disabled={!formEnabled}
+                value={settings.remindAfterMinutes}
+                onChange={event => {
+                  const next = Number(event.target.value)
+                  if (Number.isFinite(next)) props.set({ remindAfterMinutes: next })
+                }}
+              />
+            </label>
+            <span>{t('settings.remind.suffix')}</span>
+          </div>
+        ) : null}
+
+        <Collapse
+          id="dsh-notify-sounds"
+          title={t('settings.soundLibrary.title')}
+          count={fmt(t('settings.soundLibrary.count'), { count: String(library.custom.length) })}
+          open={soundsOpen}
+          onToggle={() => {
+            setSoundsOpen(!soundsOpen)
+          }}
+        >
           <div className="dsh_notify_customControls">
             <span className="dsh_notify_cacheText">
               {library.custom.length === 0
-                ? t('settings.library.empty')
-                : fmt(t('settings.library.count'), {
-                  files: String(library.custom.length),
-                  size: formatBytes(library.custom.reduce((sum, item) => sum + item.bytes, 0)),
-                })}
+                ? t('settings.soundLibrary.empty')
+                : fmt(t('settings.soundLibrary.count'), { count: String(library.custom.length) })}
             </span>
             <button
               type="button"
@@ -298,7 +473,7 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
                 void addCustomSound()
               }}
             >
-              {t('settings.library.add')}
+              {t('settings.soundLibrary.add')}
             </button>
           </div>
           {library.custom.length === 0 ? null : (
@@ -309,122 +484,145 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
                   <span className="dsh_notify_soundItemSize">{formatBytes(item.bytes)}</span>
                   <button
                     type="button"
-                    className="dsh_notify_iconButton"
+                    className="dsh_notify_iconButton dsh_notify_danger"
                     onClick={() => {
-                      void removeCustomSound(item.id)
+                      setLibraryNote(null)
+                      setSoundConfirm(item.id)
                     }}
                   >
-                    {t('settings.library.remove')}
+                    {t('settings.soundLibrary.remove')}
                   </button>
                 </li>
               ))}
             </ul>
           )}
+          {soundConfirm === null ? null : (
+            <div className="dsh_notify_confirm">
+              <span>
+                {fmt(t('settings.soundLibrary.removeConfirm'), {
+                  name: library.custom.find(item => item.id === soundConfirm)?.name ?? soundConfirm,
+                })}
+              </span>
+              <button
+                type="button"
+                className="dsh_notify_button dsh_notify_dangerButton"
+                onClick={() => {
+                  if (soundConfirm !== null) void removeCustomSound(soundConfirm)
+                }}
+              >
+                {t('settings.textLibrary.delete')}
+              </button>
+              <button
+                type="button"
+                className="dsh_notify_button"
+                onClick={() => {
+                  setSoundConfirm(null)
+                }}
+              >
+                {t('settings.textEditor.cancel')}
+              </button>
+            </div>
+          )}
           <div className="dsh_notify_rowDesc">
-            {fmt(t('settings.library.desc'), { path: '%LOCALAPPDATA%\\dsh-notify\\custom' })}
+            {fmt(t('settings.soundLibrary.desc'), { path: '%LOCALAPPDATA%\\dsh-notify\\custom' })}
           </div>
           {libraryNote === null ? null : <div className="dsh_notify_note">{libraryNote}</div>}
-          {error === null ? null : <div className="dsh_notify_error">{error}</div>}
-        </div>
-        <div className="dsh_notify_customRow">
-          <span className="dsh_notify_soundLabel">{t('settings.cache.label')}</span>
-          <div className="dsh_notify_customControls">
-            <span className="dsh_notify_cacheText">
-              {cache === null || cache.files === 0
-                ? t('settings.cache.empty')
-                : fmt(t('settings.cache.inUse'), {
-                  files: String(cache.files),
-                  size: formatBytes(cache.bytes),
-                })}
-            </span>
-            <button
-              type="button"
-              className="dsh_notify_button"
-              onClick={() => {
-                void wipeCache().then(result => {
-                  if (result === null) {
-                    setCacheNote(t('settings.cache.failed'))
-                    return
-                  }
-                  setCache({ files: 0, bytes: 0 })
-                  setCacheNote(fmt(t('settings.cache.cleared'), {
-                    files: String(result.files),
-                    size: formatBytes(result.bytes),
-                  }))
-                }, () => undefined)
-              }}
-            >
-              {t('settings.cache.clear')}
-            </button>
+
+          <div className="dsh_notify_cacheBlock">
+            <div className="dsh_notify_customControls">
+              <span className="dsh_notify_soundLabel">{t('settings.cache.label')}</span>
+              <span className="dsh_notify_cacheText">
+                {cache === null || cache.files === 0
+                  ? t('settings.cache.empty')
+                  : fmt(t('settings.cache.inUse'), {
+                    files: String(cache.files),
+                    size: formatBytes(cache.bytes),
+                  })}
+              </span>
+              <button
+                type="button"
+                className="dsh_notify_button"
+                onClick={() => {
+                  void wipeCache().then(result => {
+                    if (result === null) {
+                      setCacheNote(t('settings.cache.failed'))
+                      return
+                    }
+                    setCache({ files: 0, bytes: 0 })
+                    setCacheNote(fmt(t('settings.cache.cleared'), {
+                      files: String(result.files),
+                      size: formatBytes(result.bytes),
+                    }))
+                  }, () => undefined)
+                }}
+              >
+                {t('settings.cache.clear')}
+              </button>
+            </div>
+            <div className="dsh_notify_rowDesc">{t('settings.cache.desc')}</div>
+            {cacheNote === null ? null : <div className="dsh_notify_note">{cacheNote}</div>}
           </div>
-          <div className="dsh_notify_rowDesc">{t('settings.cache.desc')}</div>
-          {cacheNote === null ? null : <div className="dsh_notify_note">{cacheNote}</div>}
-        </div>
-      </div>
+        </Collapse>
 
-      <div className="dsh_notify_card">
-        <div className="dsh_notify_cardTitle">{t('settings.when.title')}</div>
-        <div className="dsh_notify_cardDesc">{t('settings.when.subtitle')}</div>
-        {OUTCOMES.map(entry => (
-          <Toggle
-            key={entry.field}
-            id={'dsh-notify-' + entry.field}
-            checked={settings[entry.field]}
-            label={t(entry.key)}
-            onChange={checked => {
-              props.set({ [entry.field]: checked } as Partial<NotifySettings>)
-            }}
-          />
-        ))}
-      </div>
-
-      <div className="dsh_notify_card">
-        <div className="dsh_notify_cardTitle">{t('settings.pending.title')}</div>
-        <div className="dsh_notify_cardDesc">{t('settings.pending.subtitle')}</div>
-        {PENDING.map(entry => (
-          <Toggle
-            key={entry.field}
-            id={'dsh-notify-' + entry.field}
-            checked={settings[entry.field]}
-            label={t(entry.key)}
-            onChange={checked => {
-              props.set({ [entry.field]: checked } as Partial<NotifySettings>)
-            }}
-          />
-        ))}
-      </div>
-
-      <div className="dsh_notify_card">
-        <div className="dsh_notify_cardTitle">{t('settings.remind.title')}</div>
-        <div className="dsh_notify_cardDesc">{t('settings.remind.desc')}</div>
-        <label className="dsh_notify_minutes">
-          <input
-            type="number"
-            min={1}
-            max={240}
-            value={settings.remindAfterMinutes}
-            onChange={event => {
-              const next = Number(event.target.value)
-              if (Number.isFinite(next)) props.set({ remindAfterMinutes: next })
-            }}
-          />
-          <span>{t('settings.remind.minutes')}</span>
-        </label>
-      </div>
-
-      <div className="dsh_notify_card">
-        <div className="dsh_notify_cardTitle">{t('settings.test.title')}</div>
-        <div className="dsh_notify_cardDesc">{t('settings.test.desc')}</div>
-        <button
-          type="button"
-          className="dsh_notify_button"
-          onClick={() => {
-            preview(settings.sounds.finished)
+        <Collapse
+          id="dsh-notify-texts"
+          title={t('settings.textLibrary.title')}
+          count={fmt(t('settings.textLibrary.count'), { count: String(textCount) })}
+          open={textsOpen}
+          onToggle={() => {
+            setTextsOpen(!textsOpen)
           }}
         >
-          {t('settings.test.button')}
-        </button>
-        {error === null ? null : <div className="dsh_notify_error">{error}</div>}
+          <TextManager
+            scenarios={visibleScenarios}
+            library={texts}
+            t={t}
+            labelOf={scenarioLabel}
+            partsOf={previewParts}
+            fallbackOf={previewFallback}
+            onSave={(scenario, draft, id) => props.texts.save(scenario, draft, id)}
+            onDelete={(scenario, id) => props.texts.remove(scenario, id)}
+          />
+        </Collapse>
+      </div>
+
+      <div className="dsh_notify_card">
+        <div className="dsh_notify_cardTitle">{t('settings.situations.title')}</div>
+        <div className="dsh_notify_cardDesc">{t('settings.situations.desc')}</div>
+        <div className="dsh_notify_subcard">
+          <div className="dsh_notify_subcardTitle">{t('settings.situations.turnTitle')}</div>
+          <div className="dsh_notify_rowDesc">{t('settings.situations.turnDesc')}</div>
+          {OUTCOMES.map(entry => (
+            <Toggle
+              key={entry.field}
+              id={'dsh-notify-' + entry.field}
+              checked={settings[entry.field]}
+              disabled={!formEnabled}
+              label={scenarioLabel(entry.scenario)}
+              desc={t(SCENARIO_EXAMPLE_KEYS[entry.scenario])}
+              onChange={checked => {
+                props.set({ [entry.field]: checked } as Partial<NotifySettings>)
+              }}
+            />
+          ))}
+        </div>
+        <div className="dsh_notify_subcard">
+          <div className="dsh_notify_subcardTitle">{t('settings.situations.pendingTitle')}</div>
+          <div className="dsh_notify_rowDesc">{t('settings.situations.pendingDesc')}</div>
+          {PENDING.map(entry => (
+            <Toggle
+              key={entry.field}
+              id={'dsh-notify-' + entry.field}
+              checked={settings[entry.field]}
+              disabled={!formEnabled}
+              label={scenarioLabel(entry.scenario)}
+              desc={t(SCENARIO_EXAMPLE_KEYS[entry.scenario])}
+              onChange={checked => {
+                props.set({ [entry.field]: checked } as Partial<NotifySettings>)
+              }}
+            />
+          ))}
+        </div>
       </div>
     </section>
   )

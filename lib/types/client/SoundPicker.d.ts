@@ -10,6 +10,8 @@ export interface SoundPickerProps {
     readonly labelOf: (id: SoundId) => string;
     /** Locale lookup. */
     readonly t: (key: NotifyKey) => string;
+    /** Grey the trigger out (the master switch is off); the value stays. */
+    readonly disabled?: boolean;
     /** Called with the newly chosen sound. */
     readonly onPick: (id: SoundId) => void;
 }

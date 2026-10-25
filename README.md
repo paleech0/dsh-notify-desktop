@@ -3,8 +3,8 @@
 [![npm](https://img.shields.io/npm/v/dsh-notify-desktop.svg)](https://www.npmjs.com/package/dsh-notify-desktop) · [中文文档](README.zh.md) · English
 
 Windows toast notifications for the DSH desktop app. A session finishes, fails, or stops to ask you
-something — you get a native notification with a sound chosen for that situation, and clicking it brings
-the DSH window back to the front.
+something — you get a native notification with a sound and a piece of text chosen for that situation, and
+clicking it brings the DSH window back to the front.
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="Notification settings">
 
@@ -14,10 +14,13 @@ the DSH window back to the front.
   requests, questions, plan reviews, and one nudge for a wait that drags on.
 - **Quiet when you are there** — nothing pops while the DSH window has focus, and each event notifies
   once (three-second de-duplication).
-- **A sound per situation** — four groups (finished, error, waiting on you, still waiting), each picked
-  from the Windows sounds, the author sounds shipped in [`sounds/`](sounds/), or your own files.
-- **Your own sounds** — *Add sound…* copies the file you pick into the plugin's folder, so several can
-  coexist and each can be removed later.
+- **A sound and a text per situation** — nine situations (five turn ends, three waits, one reminder),
+  each with its own sound and its own popup text; each situation can store up to three custom texts, and
+  every row has a Preview button that shows and plays exactly what it will do.
+- **Three delivery modes** — toast + sound, toast only (silent), sound only (no toast).
+- **Your own sounds and words** — sounds come from the Windows library, the author sounds shipped in
+  [`sounds/`](sounds/), or files you import; texts have a name, a title, a body and placeholders, live in a
+  local JSON file, and can be edited or deleted (with an inline confirmation).
 - **Never a long ring** — a file sound stops after eight seconds, and stops at once when you mute
   notifications or come back to the window.
 - **Click to come back** — the toast raises the DSH window; it deliberately does not jump to the session.
@@ -48,23 +51,41 @@ Then restart the DSH desktop app and open **Settings → Notifications** (`Ctrl+
 
 ## Settings
 
-Every switch lives in one section of the settings page. Preferences are stored in the renderer's
-`localStorage` and apply immediately.
+The section has three cards. Preferences live in the renderer's `localStorage`; sounds and texts live on
+this machine; every change applies immediately.
+
+**Card 1 — Desktop notifications: whether and how:**
 
 | Control | What it does |
 |---|---|
-| Enable notifications | Master switch; nothing else fires while it is off |
-| Sound | Mutes every situation group at once |
-| Sounds | One picker per group, each with a preview button |
-| Custom sounds | Add, list and remove your own files |
-| Transcode cache | Shows what transcoded wavs occupy, and clears them |
-| When to notify | One switch per turn-end reason |
-| Waiting on you | One switch per interaction kind |
-| Reminder | Minutes before the single nudge, plus a test button |
+| Enable notifications | Master switch; nothing toasts or sounds while it is off. Every delivery control greys out (the chosen values stay): the mode, each situation's sound and text, the previews, the reminder minutes and the situation switches below. Only "Custom sounds" and "Custom texts" stay editable |
+| Send a test notification | Right below the master switch; always the default Windows sound plus a fixed toast, unaffected by the mode and every setting below — use it to check that the configuration works |
+| Delivery mode | Toast + sound (default) / Toast only (silent) / Sound only (no toast) |
+
+**Card 2 — Notification setup: the sound and text of each situation:**
+
+| Control | What it does |
+|---|---|
+| Situation row | Only the situations ticked in card 3 appear (rows follow the ticks live). Each row is: situation name + sound picker + text picker + Preview |
+| Preview | Shows and plays that situation's current text (the default text is rendered with sample values) and sound, following the delivery mode |
+| Sound picker | Two levels: the source first (Windows / author / custom), that source's sounds second |
+| Text picker | Two levels: **Default** (built-in wording) or **Custom** (that situation's saved texts, listed by name) |
+| Custom sounds (collapsible) | Add / list / remove your sound files; the transcode cache and its clear button live here too |
+| Custom texts (collapsible) | Manage the saved texts per situation: at most three each, with a name, a title and a body, an Edit button and a red Delete button (deletion is confirmed inline) |
+
+**Card 3 — Notify me in which of these situations:**
+
+| Group | Switches |
+|---|---|
+| A session ends | Completed / Error / Aborted / Blocked / Token limit reached (each row carries an example) |
+| Waiting on you | Waiting for approval / an answer / a plan review (each row carries an example) |
+
+"Notification setup" lists only the ticked situations; unticking one hides its row but keeps its sound and
+text, so ticking it again brings them back.
 
 ## Sounds
 
-**Three sections.** Every picker opens a two-level list: the source first, that source's sounds second.
+**Three sections.** Every sound picker opens a two-level list: the source first, that source's sounds second.
 
 - *Windows sounds* — twenty built-in choices: the five toast events plus the media library
   (`chimes`, `ding`, `tada`, `Windows Error`, `Critical Stop`, `Alarm0x`, `Ring0x`, …).
@@ -74,17 +95,37 @@ Every switch lives in one section of the settings page. Preferences are stored i
 
 **Your own files.** *Add sound…* copies the file into `%LOCALAPPDATA%\dsh-notify\custom`, so the
 original can move or be deleted afterwards. Accepted formats are `.wav`, `.mp3`, `.m4a`, `.aac`,
-`.wma`, `.flac`, `.ogg` and `.opus`.
+`.wma`, `.flac`, `.ogg` and `.opus`. Deleting a custom sound asks for confirmation first.
 
 **When a sound stops.** A `.wav` plays directly. Anything else is transcoded once with the `ffmpeg` on
-your `PATH` and lands in the transcode cache below the list, which reports its size and can clear it. File
-sounds are capped at eight seconds, and a sound already playing stops immediately when you switch sound
-off or when the DSH window regains focus. Without ffmpeg, wav files and the two shipped libraries still
-work; the diagnostics route reports `media.ffmpeg: null`.
+your `PATH` and lands in the transcode cache inside "Custom sounds", which reports its size and can clear
+it. File sounds are capped at eight seconds, and a sound already playing stops immediately when you switch
+notifications off, switch to "Toast only", or when the DSH window regains focus. Without ffmpeg, wav files
+and the two shipped libraries still work; the diagnostics route reports `media.ffmpeg: null`.
 
 **Why custom sounds exist.** A toast can only reference five `ms-winsoundevent` values, and on Windows 11
 those resolve to four very similar chimes — `Notification.IM` and `Notification.SMS` are literally the
 same file. Playing the audio from the host is the only way to get sounds that are actually distinguishable.
+
+## Popup texts
+
+**One text per situation.** A real notification's title and body come from the text that situation has
+selected: the **default text** (built-in `{工作区} · {状态}` / `{内容}`, nothing to configure), or a **custom
+text** saved for that situation. Each situation keeps at most **three** custom texts.
+
+**The editor.** Name (24 characters), title (120), body (300); the placeholders `{工作区}` `{状态}` `{内容}`
+`{分钟}` are insertable with one click, and a live preview line renders the template while you type.
+
+**Test vs preview.** The test button in card 1 always uses fixed copy and the default Windows sound; the
+Preview button in card 2 uses the situation's real text and sound (following the delivery mode). An empty
+`{内容}` falls back to that situation's built-in line.
+
+**Where they live.** The wording is stored in
+`%LOCALAPPDATA%\dsh-notify\templates\templates.json` (under the same `dsh-notify` folder as the custom
+sounds), grouped by situation, at most three per situation; writes go through a temp file plus a rename,
+and a corrupt file reads as an empty library instead of crashing. The settings store only the chosen id;
+when a template is deleted the situation falls back to the default text. **Restart the app after editing
+this file by hand** — the client loads it once at start-up.
 
 ## Compatibility
 
@@ -107,10 +148,11 @@ dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.1.1 --dsh-ve
 
 Two halves, and no harness code is modified.
 
-- The **host half** registers one session projection (`notify`) and a few same-origin routes.
+- The **host half** registers one session projection (`notify`) and a few same-origin routes; it also
+  owns the text-template file (atomic write, per-situation cap and length validation).
 - The **client half** reads that projection from the session list, decides whether a notification is
-  warranted, and sends it: a host PowerShell toast while the window is unfocused, the renderer's own
-  notification as the fallback.
+  warranted, composes the situation's sound and text, and sends it: a host PowerShell toast while the
+  window is unfocused, the renderer's own notification as the fallback.
 
 Questions arrive from two places on purpose, and neither can be dropped. Questions asked as tool calls
 reach the projection; service-level asks such as the plan review never enter the session log, so the host
@@ -126,6 +168,7 @@ a bounded queue. A cross-source key keeps the two copies from double-toasting.
 | `GET/POST /dsh-notify/sound-library` | List the two library folders |
 | `POST /dsh-notify/import-sound`, `/delete-sound` | Add or remove a custom sound |
 | `GET/POST /dsh-notify/sound-cache` | Report or clear the transcode cache |
+| `GET/POST /dsh-notify/text-templates` | Read every saved text; save or delete one |
 | `POST /dsh-notify/pick-file`, `GET /dsh-notify/foreground` | Windows file picker; OS-level focus answer |
 | `GET /dsh-notify/questions` | Poll the host-side question queue |
 
@@ -158,6 +201,8 @@ through `System.Media.SoundPlayer` only.
 - Clicking a toast raises the window, it does not navigate to the session.
 - The `error` and `max-tokens` turn ends are covered by unit tests only; they were never reproduced live.
 - A toast cannot be observed being dismissed, so file sounds are capped rather than tied to the toast.
+- A custom text belongs to exactly one situation; using the same wording in two situations means saving it
+  twice. Hand-edited template files are only re-read after an app restart.
 - Windows desktop profile only.
 
 ## License

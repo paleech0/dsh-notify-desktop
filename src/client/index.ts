@@ -6,6 +6,10 @@
  * the visible one), decides whether the signal deserves a Windows toast, shows
  * it, and — on click — raises the window and jumps to that session.
  *
+ * Every situation carries its own sound and popup text. The sounds are a plain
+ * settings map; the texts are saved by the host to disk and cached here, with
+ * only the chosen template id in the settings.
+ *
  * Nothing here extends a harness allowlist: the projection, the session list,
  * the settings slot, and the locale registry are all ordinary plugin seams.
  */
@@ -17,11 +21,19 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 // Type-only: the renderer-owned ctx.slots registry merge.
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
-import { asReason, decideNotification, groupSound, rememberDecision } from './decision.ts'
+import {
+  asReason,
+  decideNotification,
+  isSoundOnly,
+  rememberDecision,
+  scenarioEnabled,
+  scenarioOfPending,
+  scenarioOfReason,
+  scenarioSound,
+} from './decision.ts'
 import { NS, en, fmt, zh } from './locales.ts'
 import { activateSession, focusWindowRequest } from './navigate.ts'
 import {
-  bodyText,
   ensureNotificationPermission,
   appWindowFocused,
   clearSoundCache,
@@ -30,18 +42,26 @@ import {
   notificationTag,
   pendingTag,
   pickSoundFile,
+  playSoundOnly,
   previewToast,
   silenceSounds,
   soundCacheInfo,
   soundLibrary,
   reminderTag,
   report,
-  shortPendingKey,
-  shortReasonKey,
+  shortScenarioKey,
   showToast,
 } from './notifier.ts'
-import type { PendingKind, SoundId } from '../types.ts'
-import { plainSummary, toastTitle, workspaceName } from './summary.ts'
+import type { PendingKind } from '../types.ts'
+import { DEFAULT_BODY_TEMPLATE, DEFAULT_TEXT_CHOICE, DEFAULT_TITLE_TEMPLATE } from '../types.ts'
+import {
+  SCENARIO_IDS,
+  TEXT_LIMIT_PER_SCENARIO,
+  templateOf,
+  type NotifyScenario,
+} from '../scenarios.ts'
+import { plainSummary, workspaceName } from './summary.ts'
+import { renderBody, renderTitle, type TemplateParts } from './template.ts'
 import { dueReminders, type PendingWait } from './reminder.ts'
 import { FOCUS_HEADER, QUESTIONS_ROUTE } from '../protocol.ts'
 import {
@@ -56,6 +76,7 @@ import {
 } from './runner.ts'
 import { NotifySettingsSection, type NotifySectionInjected } from './SettingsSection.tsx'
 import { createSettingsStore } from './settings.ts'
+import { createTextStore } from './texts.ts'
 import { adoptStyles } from './styles.ts'
 
 /**
@@ -104,11 +125,13 @@ export function apply(ctx: ClientContext): void {
   const t = ctx.locale.bind(NS)
 
   const store = createSettingsStore()
+  const texts = createTextStore()
   const set = (patch: Parameters<typeof store.update>[0]): void => {
     store.update(patch)
     // A file sound is played by a host child that would otherwise run to the
-    // end of its wav; switching sound off must stop it right away.
-    if (patch.soundEnabled === false) void silenceSounds()
+    // end of its wav; switching the master off, or the mode to notify-only,
+    // must stop the sound that is already playing right away.
+    if (patch.enabled === false || patch.mode === 'notify') void silenceSounds()
   }
   // Read through the service store rather than the ctx.sessions property proxy:
   // the host session package merges a different sessions member and the two
@@ -140,6 +163,90 @@ export function apply(ctx: ClientContext): void {
       { focusWindow: () => focusWindowRequest(), openSession: (id: string) => workspace?.openSession?.(id) },
       sessionId,
     )
+  }
+
+  /**
+   * Compose one situation's popup text: its chosen template, or the built-in
+   * one when the choice is `default` or the saved template vanished.
+   * @param scenario - the situation being announced.
+   * @param parts - the live placeholder values.
+   * @param fallbackBody - the line used when the body has no content at all.
+   * @returns the title and body to hand to the toast layer.
+   */
+  const textFor = (
+    scenario: NotifyScenario,
+    parts: { readonly workspace: string; readonly status: string; readonly body: string; readonly minutes?: string },
+    fallbackBody: string,
+  ): { title: string; body: string } => {
+    const choice = store.getSnapshot().texts[scenario]
+    const template = choice === DEFAULT_TEXT_CHOICE ? undefined : templateOf(texts.getSnapshot(), scenario, choice)
+    if (choice !== DEFAULT_TEXT_CHOICE && template === undefined) {
+      report('text template missing: ' + scenario + ' ' + choice + ' -> default')
+    }
+    return {
+      title: renderTitle(template === undefined ? DEFAULT_TITLE_TEMPLATE : template.title, parts),
+      body: renderBody(template === undefined ? DEFAULT_BODY_TEMPLATE : template.body, parts, fallbackBody),
+    }
+  }
+
+  /**
+   * The body fallback of one situation's built-in wording: the line shown when
+   * a template's `{内容}` has nothing to fill in.
+   * @param scenario - the situation.
+   * @returns the fallback line.
+   */
+  const fallbackBodyOf = (scenario: NotifyScenario): string => {
+    switch (scenario) {
+      case 'completed':
+      case 'error':
+      case 'aborted':
+      case 'blocked':
+      case 'max-tokens':
+        return t('notify.emptyBody')
+      case 'approval':
+      case 'question':
+      case 'plan-review':
+        return t('notify.pendingBody')
+      case 'reminder':
+        return fmt(t('notify.reminderBody'), { minutes: String(store.getSnapshot().remindAfterMinutes) })
+    }
+  }
+
+  /**
+   * Move the first template iteration's global title/body pair into the saved
+   * text library: one template per enabled situation, selected for it.
+   *
+   * The pair lived in the settings; its content belongs on disk now. Running
+   * this at start-up (after the library has loaded) keeps the migration out of
+   * the synchronous settings reader, and leaving `legacyText` in place until it
+   * succeeds makes a failed host call retry on the next launch.
+   */
+  const migrateLegacyText = async (): Promise<void> => {
+    const settings = store.getSnapshot()
+    const legacy = settings.legacyText
+    if (legacy === null) return
+    const name = t('notify.legacyTextName')
+    const nextTexts = { ...settings.texts }
+    let migrated = 0
+    for (const scenario of SCENARIO_IDS) {
+      if (!scenarioEnabled(settings, scenario)) continue
+      const library = texts.getSnapshot()
+      const existing = library[scenario].find(entry => entry.title === legacy.title && entry.body === legacy.body)
+      if (existing !== undefined) {
+        if (nextTexts[scenario] === DEFAULT_TEXT_CHOICE) nextTexts[scenario] = existing.id
+        continue
+      }
+      if (library[scenario].length >= TEXT_LIMIT_PER_SCENARIO) continue
+      const saved = await texts.save(scenario, { name, title: legacy.title, body: legacy.body })
+      if (!saved.ok) {
+        report('legacy text migration failed: ' + scenario + ' ' + saved.problem)
+        return
+      }
+      nextTexts[scenario] = saved.template.id
+      migrated += 1
+    }
+    store.update({ texts: nextTexts, legacyText: null })
+    report('legacy text migrated into ' + String(migrated) + ' situation(s)')
   }
 
   /** One ask that may deserve a toast, from either source. */
@@ -192,26 +299,40 @@ export function apply(ctx: ClientContext): void {
       sessionId: ask.sessionId,
       requestId: ask.requestId,
       kind: ask.kind,
+      summary: ask.summary,
       firstSeenAt: ask.firstSeenAt,
       reminded: false,
     })
-    report('pending ' + where + ' focused=' + String(focused)
-      + ' -> ' + (decision === null ? 'suppressed' : 'toast'))
+    const delivery = decision === null ? 'suppressed' : isSoundOnly(settings) ? 'sound-only' : 'toast'
+    report('pending ' + where + ' focused=' + String(focused) + ' -> ' + delivery)
     if (decision === null) return
-    showToast({
-      title: toastTitle(ask.label, t(shortPendingKey(ask.kind))),
-      body: bodyText(plainSummary(ask.summary), t('notify.pendingBody')),
-      tag: pendingTag(ask.sessionId, ask.requestId),
-      sound: decision.sound,
-      // A sessionless ask can still raise the window, just not jump.
-      onClick: ask.sessionId === ''
-        ? () => {
-          void focusWindowRequest()
-        }
-        : () => {
-          activate(ask.sessionId)
-        },
-    })
+    const scenario = scenarioOfPending(ask.kind)
+    const parts = {
+      workspace: ask.label,
+      status: t(shortScenarioKey(scenario)),
+      body: plainSummary(ask.summary),
+    }
+    if (isSoundOnly(settings)) {
+      // The sound-only mode never raises anything: the decision's sound goes to
+      // the host's sound-only route and the ask stays invisible.
+      playSoundOnly(decision.sound)
+    } else {
+      const text = textFor(scenario, parts, fallbackBodyOf(scenario))
+      showToast({
+        title: text.title,
+        body: text.body,
+        tag: pendingTag(ask.sessionId, ask.requestId),
+        sound: decision.sound,
+        // A sessionless ask can still raise the window, just not jump.
+        onClick: ask.sessionId === ''
+          ? () => {
+            void focusWindowRequest()
+          }
+          : () => {
+            activate(ask.sessionId)
+          },
+      })
+    }
     rememberDecision(recent, ask.sessionId + ':request:' + ask.requestId, now)
     if (ask.kind !== 'approval') rememberDecision(recent, shared, now)
   }
@@ -305,18 +426,30 @@ export function apply(ctx: ClientContext): void {
             now,
             recent,
           })
+        const delivery = decision === null ? 'suppressed' : isSoundOnly(settings) ? 'sound-only' : 'toast'
         report('turn ' + String(projection.turn) + ' reason=' + String(reason)
-          + ' focused=' + String(focused) + ' -> ' + (decision === null ? 'suppressed' : 'toast'))
+          + ' focused=' + String(focused) + ' -> ' + delivery)
         if (decision !== null && reason !== undefined) {
-          showToast({
-            title: toastTitle(toastName, t(shortReasonKey(reason))),
-            body: bodyText(plainSummary(projection.body), t('notify.emptyBody')),
-            tag: notificationTag(id, projection.turn),
-            sound: decision.sound,
-            onClick: () => {
-              activate(id)
-            },
-          })
+          const scenario = scenarioOfReason(reason)
+          const parts = {
+            workspace: toastName,
+            status: t(shortScenarioKey(scenario)),
+            body: plainSummary(projection.body),
+          }
+          if (isSoundOnly(settings)) {
+            playSoundOnly(decision.sound)
+          } else {
+            const text = textFor(scenario, parts, fallbackBodyOf(scenario))
+            showToast({
+              title: text.title,
+              body: text.body,
+              tag: notificationTag(id, projection.turn),
+              sound: decision.sound,
+              onClick: () => {
+                activate(id)
+              },
+            })
+          }
           rememberDecision(recent, dedupeKey, now)
         }
       }
@@ -337,6 +470,7 @@ export function apply(ctx: ClientContext): void {
             sessionId: id,
             requestId: entry.requestId,
             kind: entry.kind,
+            summary: entry.summary,
             firstSeenAt: now,
             reminded: false,
           })
@@ -443,16 +577,29 @@ export function apply(ctx: ClientContext): void {
     const settings = store.getSnapshot()
     const now = Date.now()
     const focused = isFocused()
+    const minutes = String(settings.remindAfterMinutes)
     for (const due of dueReminders([...waits.values()], settings, now)) {
-      const current = waits.get(due.key)
-      if (current === undefined || current.reminded) continue
-      waits.set(due.key, { ...current, reminded: true })
+      const wait = waits.get(due.key)
+      if (wait === undefined || wait.reminded) continue
+      waits.set(due.key, { ...wait, reminded: true })
       if (focused) continue
+      const parts = {
+        workspace: sessionLabel(due.sessionId),
+        status: t(shortScenarioKey('reminder')),
+        body: plainSummary(wait.summary),
+        minutes,
+      }
+      const sound = scenarioSound(settings, 'reminder')
+      if (isSoundOnly(settings)) {
+        playSoundOnly(sound)
+        continue
+      }
+      const text = textFor('reminder', parts, fallbackBodyOf('reminder'))
       showToast({
-        title: toastTitle(sessionLabel(due.sessionId), t('notify.shortReminder')),
-        body: fmt(t('notify.reminderBody'), { minutes: String(settings.remindAfterMinutes) }),
+        title: text.title,
+        body: text.body,
         tag: reminderTag(due.sessionId, due.requestId),
-        sound: groupSound(settings, 'reminder'),
+        sound,
         onClick: () => {
           activate(due.sessionId)
         },
@@ -460,15 +607,66 @@ export function apply(ctx: ClientContext): void {
     }
   }
 
-  const sendTest = (sound?: SoundId): void => {
+  /** The test toast: fixed copy, fixed default sound, immune to every setting below the master switch. */
+  const sendTest = (): void => {
     // A fresh tag per click: a stale same-tag entry in the action center would
     // otherwise swallow the next test. previewToast always takes the host path
-    // so the exact sound plays, focus or not.
+    // so the toast pops, focus or not.
     previewToast({
       title: t('notify.testTitle'),
       body: t('notify.testBody'),
       tag: 'dsh-notify-test-' + String(Date.now()),
-      sound: sound ?? groupSound(store.getSnapshot(), 'finished'),
+      sound: 'system:default',
+      onClick: () => {
+        void focusWindowRequest()
+      },
+    })
+  }
+
+  /**
+   * The placeholder values one preview renders with: a real workspace name when
+   * there is one, and obvious sample text for everything else.
+   * @param scenario - the situation being previewed.
+   * @returns the values the chosen text is filled with.
+   */
+  const previewParts = (scenario: NotifyScenario): TemplateParts => {
+    const ids = sessions.list.getSnapshot().ids
+    const first = ids.length > 0 ? ids[0] : undefined
+    const label = first === undefined ? '' : sessionLabel(first)
+    const parts: TemplateParts = {
+      workspace: label === '' ? t('notify.previewWorkspace') : label,
+      status: t(shortScenarioKey(scenario)),
+      body: t('notify.previewSampleBody'),
+    }
+    // Only the reminder has a value for {分钟}; everywhere else the token must
+    // vanish in the preview exactly like it does in a real notification.
+    return scenario === 'reminder'
+      ? { ...parts, minutes: String(store.getSnapshot().remindAfterMinutes) }
+      : parts
+  }
+
+  /**
+   * Audition one situation the way a real notification in the current mode
+   * would deliver it: its chosen text and sound, toast + sound, muted toast, or
+   * the sound alone.
+   * @param scenario - the situation whose settings to show.
+   */
+  const previewScenario = (scenario: NotifyScenario): void => {
+    const settings = store.getSnapshot()
+    const sound = scenarioSound(settings, scenario)
+    if (isSoundOnly(settings)) {
+      report('preview sound-only: ' + scenario + ' sound=' + sound)
+      playSoundOnly(sound)
+      return
+    }
+    const parts = previewParts(scenario)
+    const text = textFor(scenario, parts, fallbackBodyOf(scenario))
+    report('preview ' + scenario + ' mode=' + settings.mode + ' sound=' + sound)
+    previewToast({
+      title: text.title,
+      body: text.body,
+      tag: 'dsh-notify-preview-' + scenario + '-' + String(Date.now()),
+      sound,
       onClick: () => {
         void focusWindowRequest()
       },
@@ -499,6 +697,10 @@ export function apply(ctx: ClientContext): void {
       window.removeEventListener('blur', onBlur)
     }
   })
+
+  // The saved popup texts live on disk; load them once, then finish any
+  // template migration the previous shape left behind.
+  void texts.load().then(() => migrateLegacyText(), () => undefined)
 
   ctx.effect(() => {
     const reseed = (): void => {
@@ -537,15 +739,17 @@ export function apply(ctx: ClientContext): void {
     label: () => t('nav'),
     locale: NS,
     inject: (): NotifySectionInjected => ({
-    store,
-    set,
-    sendTest,
-    pickFile: pickSoundFile,
-    loadLibrary: soundLibrary,
-    importSound,
-    deleteSound,
-    cacheInfo: soundCacheInfo,
-    clearCache: clearSoundCache,
-  }),
+      store,
+      set,
+      sendTest,
+      previewScenario,
+      texts,
+      pickFile: pickSoundFile,
+      loadLibrary: soundLibrary,
+      importSound,
+      deleteSound,
+      cacheInfo: soundCacheInfo,
+      clearCache: clearSoundCache,
+    }),
   }, NotifySettingsSection))
 }

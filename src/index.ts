@@ -26,11 +26,15 @@ import {
   QUESTIONS_ROUTE,
   SOUND_LIBRARY_ROUTE,
   SOUND_CACHE_ROUTE,
+  SOUND_ROUTE,
   REPORT_LIMIT,
   REPORT_ROUTE,
   SILENCE_ROUTE,
+  TEXT_TEMPLATES_ROUTE,
 } from './protocol.ts'
 import { questionRecordOf, trimQuestions, type QuestionRecord } from './questions.ts'
+import { parseEventWavs } from './event-wav.ts'
+import { deleteTextTemplate, readTextLibrary, saveTextTemplate } from './text-store.ts'
 // Type-only: brings the ctx.webServer Context merge into this program.
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import { notifyProjection } from './projection.ts'
@@ -631,6 +635,58 @@ function handleSoundCache(req: IncomingMessage, res: ServerResponse): void {
   res.end(JSON.stringify({ removed, bytes }))
 }
 
+/** The app-data root every persisted file lives under (`%LOCALAPPDATA%`). */
+function appDataRoot(): string {
+  return process.env['LOCALAPPDATA'] ?? process.env['TEMP'] ?? '.'
+}
+
+/**
+ * Answer the text-template route: GET returns every situation's library, POST
+ * saves or deletes one entry and answers with the whole library.
+ *
+ * The body is validated and bounded here, next to the folder listing rules: the
+ * renderer can only store templates the host accepted, and the per-situation
+ * limit holds even if the renderer is out of date.
+ * @param req - the raw request.
+ * @param res - the raw response.
+ */
+function handleTextTemplates(req: IncomingMessage, res: ServerResponse): void {
+  const root = appDataRoot()
+  if (req.method === 'GET') {
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify({ library: readTextLibrary(root) }))
+    return
+  }
+  if (req.method !== 'POST' || req.headers[FOCUS_HEADER] === undefined) {
+    res.writeHead(405)
+    res.end()
+    return
+  }
+  readBody(req, body => {
+    let parsed: { action?: unknown; scenario?: unknown; id?: unknown; template?: unknown } = {}
+    try {
+      parsed = JSON.parse(body) as typeof parsed
+    } catch {
+      // A malformed body is answered as a missing template below.
+    }
+    if (parsed.action === 'delete') {
+      const result = deleteTextTemplate(root, parsed.scenario, parsed.id)
+      note('delete text: ' + String(parsed.scenario) + ' ' + String(parsed.id) + ' -> ' + String(result.ok))
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify(result.ok
+        ? { ok: true, library: result.library }
+        : { ok: false, problem: result.problem }))
+      return
+    }
+    const result = saveTextTemplate(root, parsed.scenario, parsed.template, parsed.id)
+    note('save text: ' + String(parsed.scenario) + ' -> ' + (result.ok ? result.template.id : result.problem))
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify(result.ok
+      ? { ok: true, library: result.library, template: result.template }
+      : { ok: false, problem: result.problem }))
+  })
+}
+
 /** A media file name may only be a plain wav name, whatever the table says. */
 const SAFE_WAV = /^[A-Za-z0-9 ._-]+\.wav$/
 
@@ -700,6 +756,9 @@ function hostSoundOf(sound: unknown, customFile?: unknown): HostSound {
 /** The Windows PowerShell 5.1 host this machine has (pwsh may be absent). */
 const POWERSHELL = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
 
+/** The registry query tool, fixed the same way {@link POWERSHELL} is. */
+const REG_EXE = 'C:\\Windows\\System32\\reg.exe'
+
 /** Escape one string for the toast XML. */
 function xmlEscape(text: string): string {
   return text
@@ -708,6 +767,71 @@ function xmlEscape(text: string): string {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&apos;')
+}
+
+/**
+ * The toast half of the child script: build the XML from the environment
+ * variable and show it through the shell's own AUMID.
+ */
+const TOAST_SCRIPT_LINES: readonly string[] = [
+  '[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null',
+  '[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null',
+  '$xml = New-Object Windows.Data.Xml.Dom.XmlDocument',
+  '$xml.LoadXml($env:DSH_NOTIFY_XML)',
+  '$toast = New-Object Windows.UI.Notifications.ToastNotification $xml',
+  "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('" + TOAST_AUMID + "').Show($toast)",
+]
+
+/**
+ * The media half of the child script: the toast is muted and the host plays the
+ * sound itself, in this same child, always through .NET's SoundPlayer — the
+ * only player that works here (the WinRT/WPF/WMP stacks never open a file from
+ * a spawned child; measured with a dispatcher pump too). A non-wav source is
+ * transcoded to a cached wav first, so the audio path never touches the media
+ * stack. PlaySync keeps the process alive until the sound ends, and every path
+ * arrives through an environment variable, never in the command.
+ *
+ * Exported so the sound-only spawn's encoded copy can be pinned to it by a test.
+ */
+export const MEDIA_SCRIPT_LINES: readonly string[] = [
+  'if ($env:DSH_NOTIFY_MEDIA) {',
+  '  try {',
+  '    $media = $env:DSH_NOTIFY_MEDIA',
+  '    if (-not $media.ToLower().EndsWith(".wav")) {',
+  '      $cached = $env:DSH_NOTIFY_WAVCACHE',
+  '      if ($cached -and -not (Test-Path -LiteralPath $cached) -and $env:DSH_NOTIFY_FFMPEG) {',
+  '        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $cached) | Out-Null',
+  '        & $env:DSH_NOTIFY_FFMPEG -y -loglevel error -i $media -ac 2 -ar 44100 -acodec pcm_s16le $cached | Out-Null',
+  '      }',
+  '      if ($cached -and (Test-Path -LiteralPath $cached)) { $media = $cached }',
+  '    }',
+  '    if ($media.ToLower().EndsWith(".wav") -and (Test-Path -LiteralPath $media)) {',
+  '      (New-Object System.Media.SoundPlayer $media).PlaySync()',
+  '    }',
+  '  } catch { }',
+  '}',
+]
+
+/**
+ * Track one child that is playing a notification sound so "sound off" and the
+ * window regaining focus can stop it mid-file, and cap it so a long file never
+ * outlives its toast.
+ */
+function trackSoundPlayer(child: ChildProcess): void {
+  soundPlayers.add(child)
+  const cap = setTimeout(() => {
+    try {
+      child.kill()
+    } catch {
+      // Already gone; nothing to stop.
+    }
+  }, SOUND_CAP_MS)
+  const forget = (): void => {
+    clearTimeout(cap)
+    soundPlayers.delete(child)
+  }
+  child.on('close', forget)
+  child.on('error', forget)
 }
 
 /**
@@ -734,37 +858,7 @@ function showHostToast(title: string, body: string, sound: unknown, customFile?:
     + '<text>' + xmlEscape(title.slice(0, 120)) + '</text>'
     + '<text>' + xmlEscape(body.replaceAll(/\s+/g, ' ').slice(0, 300)) + '</text>'
     + '</binding></visual>' + audio + '</toast>'
-  const script = [
-    '[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null',
-    '[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null',
-    '$xml = New-Object Windows.Data.Xml.Dom.XmlDocument',
-    '$xml.LoadXml($env:DSH_NOTIFY_XML)',
-    '$toast = New-Object Windows.UI.Notifications.ToastNotification $xml',
-    "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('" + TOAST_AUMID + "').Show($toast)",
-    // A file sound: the toast is muted and the host plays the sound itself, in
-    // this same child, always through .NET's SoundPlayer — the only player that
-    // works here (the WinRT/WPF/WMP stacks never open a file from a spawned
-    // child; measured with a dispatcher pump too). A non-wav source is
-    // transcoded to a cached wav first, so the audio path never touches the
-    // media stack. PlaySync keeps the process alive until the sound ends, and
-    // every path arrives through an environment variable, never in the command.
-    'if ($env:DSH_NOTIFY_MEDIA) {',
-    '  try {',
-    '    $media = $env:DSH_NOTIFY_MEDIA',
-    '    if (-not $media.ToLower().EndsWith(".wav")) {',
-    '      $cached = $env:DSH_NOTIFY_WAVCACHE',
-    '      if ($cached -and -not (Test-Path -LiteralPath $cached) -and $env:DSH_NOTIFY_FFMPEG) {',
-    '        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $cached) | Out-Null',
-    '        & $env:DSH_NOTIFY_FFMPEG -y -loglevel error -i $media -ac 2 -ar 44100 -acodec pcm_s16le $cached | Out-Null',
-    '      }',
-    '      if ($cached -and (Test-Path -LiteralPath $cached)) { $media = $cached }',
-    '    }',
-    '    if ($media.ToLower().EndsWith(".wav") -and (Test-Path -LiteralPath $media)) {',
-    '      (New-Object System.Media.SoundPlayer $media).PlaySync()',
-    '    }',
-    '  } catch { }',
-    '}',
-  ].join('; ')
+  const script = [...TOAST_SCRIPT_LINES, ...MEDIA_SCRIPT_LINES].join('; ')
   try {
     // Absolute path first: the desktop host process does not necessarily carry
     // System32 on PATH, and a bare-name spawn fails with an error event that
@@ -790,24 +884,7 @@ function showHostToast(title: string, body: string, sound: unknown, customFile?:
       clientReports.push(new Date().toISOString().slice(11, 19) + ' host-toast spawn failed: ' + String(error))
       while (clientReports.length > REPORT_LIMIT) clientReports.shift()
     })
-    // Track the player so "sound off" and the window regaining focus can stop
-    // it mid-file, and cap it so a long file never outlives its toast.
-    if (chosen.wav !== undefined) {
-      soundPlayers.add(child)
-      const cap = setTimeout(() => {
-        try {
-          child.kill()
-        } catch {
-          // Already gone; nothing to stop.
-        }
-      }, SOUND_CAP_MS)
-      const forget = (): void => {
-        clearTimeout(cap)
-        soundPlayers.delete(child)
-      }
-      child.on('close', forget)
-      child.on('error', forget)
-    }
+    if (chosen.wav !== undefined) trackSoundPlayer(child)
     child.unref()
   } catch (error) {
     clientReports.push(new Date().toISOString().slice(11, 19) + ' host-toast threw: ' + String(error))
@@ -841,6 +918,144 @@ function handleHostToast(req: IncomingMessage, res: ServerResponse): void {
       res.writeHead(400)
       res.end()
     }
+  })
+}
+
+/** Resolved wav per event name (e.g. 'Notification.IM'), present only when a wav exists. */
+const eventWavs = new Map<string, string>()
+
+/** Whether the sound scheme has been read successfully this process. */
+let eventWavsRead = false
+
+/**
+ * The sound scheme's wav per notification event.
+ *
+ * A sound-only notification has no toast to carry the `<audio>` element, so the
+ * scheme's own wav files are what the SoundPlayer plays (spike S3: all five
+ * notification events resolve and exist). The whole branch is read in one go
+ * with a fixed executable and a fully static argument list — no part of the
+ * command is ever built from data; the parsing happens here — so the scheme
+ * costs one `reg.exe` child per process, not one per play. A read that yields
+ * no notification events is not cached, so a machine that fixes its scheme
+ * recovers on the next play without an app restart.
+ * @returns the event-name → wav map (empty when the query never succeeded).
+ */
+function eventWavMap(): Promise<Map<string, string>> {
+  if (eventWavsRead) return Promise.resolve(eventWavs)
+  return new Promise(resolve => {
+    let out = ''
+    try {
+      const child = spawn(REG_EXE, ['query', 'HKCU\\AppEvents\\Schemes\\Apps\\.Default', '/s', '/ve'], {
+        windowsHide: true,
+      })
+      child.stdout?.on('data', chunk => {
+        out += String(chunk)
+      })
+      child.stderr?.resume()
+      child.on('error', () => resolve(eventWavs))
+      child.on('close', () => {
+        for (const hit of parseEventWavs(out, existsSync)) eventWavs.set(hit.event, hit.wav)
+        if (eventWavs.size > 0) eventWavsRead = true
+        resolve(eventWavs)
+      })
+    } catch {
+      resolve(eventWavs)
+    }
+  })
+}
+
+/**
+ * The wav the sound scheme maps one toast event to, for the sound-only route.
+ * @param event - the full event value, e.g. `ms-winsoundevent:Notification.IM`.
+ * @returns the absolute wav path, or '' when it cannot be resolved.
+ */
+function resolveEventWav(event: string): Promise<string> {
+  return eventWavMap().then(map => map.get(event.replace('ms-winsoundevent:', '')) ?? '')
+}
+
+/**
+ * Play one resolved sound in its own child, without raising anything: the
+ * sound-only path (notification mode `sound`, and the audition in that mode).
+ * The exact media half of the toast child — same script, same env-var rule,
+ * same transcode-then-PlaySync pipeline — tracked and capped the same way.
+ * @param chosen - the sound the host catalog resolved; a sound without a wav
+ * is a no-op here.
+ */
+function playHostSound(chosen: HostSound): void {
+  if (chosen.wav === undefined) return
+  // Same lazy resolution as the toast path: only a file sound looks for ffmpeg.
+  const ffmpeg = chosen.wav === undefined ? '' : findFfmpeg()
+  const wavCache = chosen.wav.toLowerCase().endsWith('.wav') ? '' : wavCachePath(chosen.wav)
+  const script = MEDIA_SCRIPT_LINES.join('; ')
+  try {
+    // Same spawn shape as the toast child: absolute PowerShell path, not
+    // detached, piped stdio drained — the measured constraints.
+    const child = spawn(POWERSHELL, ['-NoProfile', '-NonInteractive', '-Command', script], {
+      windowsHide: true,
+      env: {
+        ...process.env,
+        DSH_NOTIFY_MEDIA: chosen.wav ?? '',
+        DSH_NOTIFY_WAVCACHE: wavCache,
+        DSH_NOTIFY_FFMPEG: ffmpeg,
+      },
+    })
+    child.stdout?.resume()
+    child.stderr?.resume()
+    child.on('error', error => {
+      note('sound spawn failed: ' + String(error))
+    })
+    trackSoundPlayer(child)
+    child.unref()
+  } catch (error) {
+    note('sound spawn threw: ' + String(error))
+  }
+}
+
+/**
+ * Answer the sound-only route: play one catalog sound without raising a toast.
+ *
+ * The id resolves exactly as it does for a toast — catalog id only, never a
+ * path — so a compromised renderer can name nothing outside the catalog. A
+ * `system:*` event has no wav of its own; the sound scheme resolves it (and a
+ * failure stays silent, visible in the debug route).
+ * @param req - the raw request.
+ * @param res - the raw response.
+ */
+function handleSound(req: IncomingMessage, res: ServerResponse): void {
+  if (req.method !== 'POST' || req.headers[FOCUS_HEADER] === undefined) {
+    res.writeHead(405)
+    res.end()
+    return
+  }
+  readBody(req, body => {
+    let sound: unknown = undefined
+    try {
+      sound = (JSON.parse(body) as { sound?: unknown }).sound
+    } catch {
+      // Treated as an unknown id below, which falls back to the default event.
+    }
+    const chosen = hostSoundOf(sound)
+    if (chosen.wav !== undefined) {
+      playHostSound(chosen)
+      res.writeHead(204)
+      res.end()
+      return
+    }
+    if (chosen.event === '') {
+      note('sound-only: silent, nothing to play')
+      res.writeHead(204)
+      res.end()
+      return
+    }
+    void resolveEventWav(chosen.event).then(wav => {
+      if (wav === '') {
+        note('sound-only: event unresolved, staying silent: ' + chosen.event)
+      } else {
+        playHostSound({ event: '', wav })
+      }
+      res.writeHead(204)
+      res.end()
+    })
   })
 }
 
@@ -975,6 +1190,10 @@ export function apply(ctx: Context): void {
       'dsh-notify-desktop: silence route',
     )
     scoped.effect(
+      () => scoped.webServer.register({ kind: 'exact', path: SOUND_ROUTE, handler: handleSound }),
+      'dsh-notify-desktop: sound-only route',
+    )
+    scoped.effect(
       () => scoped.webServer.register({ kind: 'exact', path: PICK_FILE_ROUTE, handler: handlePickFile }),
       'dsh-notify-desktop: file picker route',
     )
@@ -993,6 +1212,10 @@ export function apply(ctx: Context): void {
     scoped.effect(
       () => scoped.webServer.register({ kind: 'exact', path: SOUND_CACHE_ROUTE, handler: handleSoundCache }),
       'dsh-notify-desktop: sound cache route',
+    )
+    scoped.effect(
+      () => scoped.webServer.register({ kind: 'exact', path: TEXT_TEMPLATES_ROUTE, handler: handleTextTemplates }),
+      'dsh-notify-desktop: text template route',
     )
     scoped.effect(
       () => scoped.webServer.register({

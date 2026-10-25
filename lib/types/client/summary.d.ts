@@ -4,9 +4,9 @@
  *
  * The projected body is the assistant's own markdown; pasted into a Windows
  * toast it shows asterisks, pipe tables and code fences across the one or two
- * lines the shell renders. This module flattens it to readable text, bounds it
- * to the three rendered lines the toast shows, and composes the
- * "workspace · status" title.
+ * lines the shell renders. This module flattens it to readable text and bounds
+ * it to the three rendered lines the toast shows; the title/body composition
+ * itself lives in the user-facing templates (template.ts).
  */
 /**
  * How many characters of the reply reach the toast body. Budgeted from the
@@ -34,10 +34,3 @@ export declare function plainSummary(text: string, limit?: number): string;
  * @returns the workspace name, or an empty string.
  */
 export declare function workspaceName(cwd: string | undefined): string;
-/**
- * Compose the toast title: who it is about, then the short status.
- * @param label - the workspace name (falls back to the session title).
- * @param statusLabel - the localized short status, e.g. 任务完成.
- * @returns the bounded title.
- */
-export declare function toastTitle(label: string, statusLabel: string): string;

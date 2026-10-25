@@ -27,7 +27,123 @@ export const cssText = `
 .dsh_notify_error { color: #e5484d; font-size: 12px; line-height: 1.5; }
 .dsh_notify_note { color: #3dd68c; font-size: 12px; line-height: 1.5; }
 .dsh_notify_cacheText { flex: 1 1 auto; font-size: 12px; opacity: 0.75; }
-/* The imported-sound list: one quiet row per file, hover to reveal the action. */
+.dsh_notify_rowDesc { font-size: 12px; opacity: 0.66; line-height: 1.5; }
+.dsh_notify_rowPrefix { font-size: 11px; opacity: 0.55; }
+.dsh_notify_button {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 13px;
+}
+.dsh_notify_button:hover { background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12)); }
+
+/*
+ * Card 1: the test button sits directly under the master switch, then the
+ * delivery modes as one radio row each.
+ */
+.dsh_notify_testBlock { display: flex; flex-direction: column; gap: 4px; padding-left: 0; }
+.dsh_notify_modeBlock { display: flex; flex-direction: column; gap: 6px; }
+.dsh_notify_modeLabel { font-weight: 600; font-size: 13px; }
+.dsh_notify_modeRow { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; }
+.dsh_notify_modeRow input[type='radio'] { margin-top: 3px; }
+.dsh_notify_modeText { display: flex; flex-direction: column; gap: 2px; }
+.dsh_notify_minutes { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.dsh_notify_minutes input {
+  width: 72px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
+  background: transparent;
+  color: inherit;
+}
+
+/*
+ * Card 2: one row per situation — name, sound picker, text picker, preview.
+ * The pickers shrink to 118px here so the three controls and the preview fit
+ * the settings panel on one line.
+ */
+.dsh_notify_scenarios { display: flex; flex-direction: column; }
+.dsh_notify_card .dsh_notify_scenarioRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 118px auto 118px 64px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  min-height: 38px;
+}
+.dsh_notify_card .dsh_notify_scenarioRow + .dsh_notify_scenarioRow {
+  border-top: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.16));
+}
+.dsh_notify_scenarioName { font-size: 13px; line-height: 1.4; }
+.dsh_notify_card .dsh_notify_scenarioRow .dsh_notify_pickerTrigger {
+  width: 118px;
+  min-width: 118px;
+  max-width: 118px;
+}
+.dsh_notify_card .dsh_notify_scenarioPreview {
+  width: 64px;
+  height: 30px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 28px;
+  text-align: center;
+  align-self: center;
+}
+.dsh_notify_remindLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 2px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+.dsh_notify_remindLine .dsh_notify_minutes input { width: 64px; }
+
+/* The two collapsible libraries. */
+.dsh_notify_card .dsh_notify_collapse {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  margin-top: 2px;
+  border-top: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.16));
+}
+.dsh_notify_collapseHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.dsh_notify_collapseLabel { font-weight: 600; font-size: 13px; }
+.dsh_notify_collapseCount { font-size: 12px; opacity: 0.6; }
+.dsh_notify_collapseBody { display: flex; flex-direction: column; gap: 8px; padding-left: 16px; }
+.dsh_notify_cacheBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  margin-top: 4px;
+  border-top: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.16));
+}
+.dsh_notify_card .dsh_notify_soundLabel { font-size: 13px; line-height: 1.4; }
+.dsh_notify_card .dsh_notify_customControls { display: flex; align-items: center; gap: 8px; }
+.dsh_notify_card .dsh_notify_customControls .dsh_notify_button {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+/* The imported-sound and saved-text lists: one quiet row per entry. */
 .dsh_notify_soundList {
   list-style: none;
   margin: 2px 0 0;
@@ -67,115 +183,29 @@ export const cssText = `
   opacity: 0.75;
 }
 .dsh_notify_card .dsh_notify_iconButton:hover { opacity: 1; background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12)); }
-.dsh_notify_rowDesc { font-size: 12px; opacity: 0.66; }
-.dsh_notify_minutes { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-.dsh_notify_minutes input {
-  width: 72px;
-  padding: 4px 8px;
-  border-radius: 8px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
-  background: transparent;
-  color: inherit;
-}
-.dsh_notify_button {
-  align-self: flex-start;
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font-size: 13px;
-}
-.dsh_notify_button:hover { background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12)); }
-/*
- * The sound rows are a fixed three-column grid, and every control is sized
- * explicitly: the surrounding settings theme gives a select element a full
- * width and its own height, which turned each row into three stacked lines.
- * The selectors below are written long enough to win against those theme rules
- * without needing an important flag.
- */
-.dsh_notify_sounds { display: flex; flex-direction: column; gap: 2px; }
-.dsh_notify_card .dsh_notify_soundRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 148px 68px;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 0;
-  min-height: 38px;
-}
-.dsh_notify_card .dsh_notify_soundRow + .dsh_notify_soundRow {
-  border-top: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.16));
-}
-.dsh_notify_card .dsh_notify_soundLabel { font-size: 13px; line-height: 1.4; }
-/*
- * The select is drawn by hand: the native one (grey hairline, system arrow,
- * square focus ring) looked nothing like the rest of the section. appearance is
- * none with an inline chevron, and the surface matches the row's own layer.
- */
-.dsh_notify_card .dsh_notify_soundRow .dsh_notify_select {
-  width: 148px;
-  min-width: 148px;
-  max-width: 148px;
-  height: 30px;
-  margin: 0;
-  padding: 0 24px 0 10px;
-  font-size: 12px;
-  line-height: 28px;
-  border-radius: 8px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28));
-  background-color: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.08));
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' fill='none' stroke='%23909aa8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 9px center;
-  background-size: 10px 6px;
-  appearance: none;
-  -webkit-appearance: none;
-  color: inherit;
-  cursor: pointer;
-  transition: border-color 120ms ease, background-color 120ms ease;
-}
-.dsh_notify_card .dsh_notify_soundRow .dsh_notify_select:hover {
-  border-color: var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.45));
-  background-color: var(--dsw-alias-bg-layer-3, rgba(127, 127, 127, 0.14));
-}
-.dsh_notify_card .dsh_notify_soundRow .dsh_notify_select:focus-visible {
-  outline: 2px solid var(--dsw-alias-brand-primary, rgba(77, 107, 254, 0.6));
-  outline-offset: 1px;
-  border-color: transparent;
-}
-.dsh_notify_card .dsh_notify_customRow {
+
+/* Delete is the one destructive action on the page: red, and confirmed inline. */
+.dsh_notify_card .dsh_notify_iconButton.dsh_notify_danger { color: #e5484d; border-color: rgba(229, 72, 77, 0.4); opacity: 0.9; }
+.dsh_notify_card .dsh_notify_iconButton.dsh_notify_danger:hover { background: rgba(229, 72, 77, 0.12); opacity: 1; }
+.dsh_notify_button.dsh_notify_dangerButton { color: #e5484d; border-color: rgba(229, 72, 77, 0.55); }
+.dsh_notify_button.dsh_notify_dangerButton:hover { background: rgba(229, 72, 77, 0.12); }
+.dsh_notify_confirm {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-top: 10px;
-  margin-top: 2px;
-  border-top: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.16));
-}
-.dsh_notify_card .dsh_notify_customControls { display: flex; align-items: center; gap: 8px; }
-.dsh_notify_card .dsh_notify_customControls .dsh_notify_pathInput {
-  flex: 1 1 auto;
-  width: auto;
-  min-width: 0;
-  height: 28px;
-  margin: 0;
-  padding: 0 8px;
-  font-size: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 8px;
   border-radius: 7px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
-  background: transparent;
-  color: inherit;
-}
-.dsh_notify_card .dsh_notify_customControls .dsh_notify_button {
-  height: 28px;
-  padding: 0 10px;
+  border: 1px solid rgba(229, 72, 77, 0.35);
+  background: rgba(229, 72, 77, 0.08);
   font-size: 12px;
-  white-space: nowrap;
-  flex: 0 0 auto;
+  line-height: 1.5;
 }
+.dsh_notify_confirm .dsh_notify_button { height: 26px; padding: 0 10px; font-size: 12px; }
+
 /*
- * The two-level picker: the trigger keeps the old select's footprint, the panel
- * floats above the card with the section headers as level one.
+ * The two-level pickers: the trigger keeps the old select's footprint, the
+ * panel floats above the card with the section headers as level one.
  */
 .dsh_notify_picker { position: relative; display: flex; }
 .dsh_notify_card .dsh_notify_pickerTrigger {
@@ -244,6 +274,9 @@ export const cssText = `
   cursor: pointer;
 }
 .dsh_notify_card .dsh_notify_pickerHeader:hover { background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12)); }
+/* The text picker's two headers are plain labels, not expanders. */
+.dsh_notify_card .dsh_notify_pickerHeaderStatic { cursor: default; }
+.dsh_notify_card .dsh_notify_pickerHeaderStatic:hover { background: transparent; }
 .dsh_notify_pickerHeaderLabel { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dsh_notify_pickerCount { opacity: 0.55; font-variant-numeric: tabular-nums; }
 .dsh_notify_pickerCaretSmall {
@@ -286,28 +319,138 @@ export const cssText = `
   font-weight: 600;
 }
 .dsh_notify_pickerEmpty { padding: 2px 8px 8px 20px; font-size: 12px; opacity: 0.6; }
-/* The preview button is the picker trigger's twin: same height, radius and surface. */
-.dsh_notify_card .dsh_notify_soundRow .dsh_notify_preview {
-  width: 68px;
-  height: 30px;
-  margin: 0;
-  padding: 0;
+.dsh_notify_textPanel { width: 230px; }
+
+/* The saved-text manager and its inline editor. */
+.dsh_notify_textManager { display: flex; flex-direction: column; gap: 4px; }
+.dsh_notify_textGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+  border-top: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.12));
+}
+.dsh_notify_textGroup:first-child { border-top: 0; padding-top: 0; }
+.dsh_notify_textGroupHeader { display: flex; align-items: baseline; gap: 8px; }
+.dsh_notify_textGroupName { font-size: 13px; font-weight: 600; }
+.dsh_notify_textGroupCount { font-size: 12px; opacity: 0.6; font-variant-numeric: tabular-nums; }
+.dsh_notify_textList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.dsh_notify_card .dsh_notify_textItem {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 7px;
   font-size: 12px;
-  line-height: 28px;
-  text-align: center;
+  border: 1px solid transparent;
+}
+.dsh_notify_card .dsh_notify_textItem:hover {
+  background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.1));
+  border-color: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.2));
+}
+.dsh_notify_textItemName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.dsh_notify_textItemBody { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.7; }
+.dsh_notify_editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
   border-radius: 8px;
   border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28));
-  background-color: transparent;
-  align-self: center;
-  transition: border-color 120ms ease, background-color 120ms ease;
+  background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.06));
 }
-.dsh_notify_card .dsh_notify_soundRow .dsh_notify_preview:hover {
-  border-color: var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.45));
-  background-color: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12));
+.dsh_notify_editorRow { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.dsh_notify_editorLabel { font-size: 12px; opacity: 0.75; }
+.dsh_notify_editorCount { font-size: 11px; opacity: 0.5; font-variant-numeric: tabular-nums; }
+.dsh_notify_textInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 28px;
+  margin: 0;
+  padding: 0 8px;
+  font-size: 12px;
+  border-radius: 7px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
+  background: transparent;
+  color: inherit;
 }
-.dsh_notify_card .dsh_notify_soundRow .dsh_notify_preview:focus-visible {
-  outline: 2px solid var(--dsw-alias-brand-primary, rgba(77, 107, 254, 0.6));
-  outline-offset: 1px;
+.dsh_notify_textArea {
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  border-radius: 7px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
+  background: transparent;
+  color: inherit;
+  resize: vertical;
+}
+.dsh_notify_editorPlaceholders { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dsh_notify_chip {
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 999px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.dsh_notify_chip:hover { background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12)); }
+.dsh_notify_editorPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px dashed var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
+}
+.dsh_notify_previewTitle { font-size: 13px; font-weight: 600; }
+.dsh_notify_previewBody { font-size: 12px; opacity: 0.8; line-height: 1.5; }
+.dsh_notify_editorActions { display: flex; gap: 8px; }
+
+/* Card 3: the two situation groups, each row carrying its example sentence. */
+.dsh_notify_subcard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.2));
+}
+.dsh_notify_subcardTitle { font-weight: 600; font-size: 13px; }
+
+/*
+ * Greys: the master switch off disables every delivery control — disabled, not
+ * hidden, so the chosen values stay visible.
+ */
+.dsh_notify_button[disabled],
+.dsh_notify_card .dsh_notify_scenarioRow .dsh_notify_scenarioPreview[disabled],
+.dsh_notify_card .dsh_notify_pickerTrigger[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.dsh_notify_button[disabled]:hover,
+.dsh_notify_card .dsh_notify_scenarioRow .dsh_notify_scenarioPreview[disabled]:hover,
+.dsh_notify_card .dsh_notify_pickerTrigger[disabled]:hover {
+  background: transparent;
+  border-color: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28));
+}
+.dsh_notify_modeRow input[type='radio']:disabled,
+.dsh_notify_row input[type='checkbox']:disabled {
+  opacity: 0.45;
+}
+/* Text beside a control the master switch disabled: dimmed through the label
+   and the description only, so the checkbox keeps its own single dimming. */
+.dsh_notify_rowDisabled .dsh_notify_rowLabel,
+.dsh_notify_rowDisabled .dsh_notify_rowDesc,
+.dsh_notify_modeRowDisabled .dsh_notify_rowLabel,
+.dsh_notify_modeRowDisabled .dsh_notify_rowDesc {
+  opacity: 0.5;
+}
+.dsh_notify_minutes input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 `
 

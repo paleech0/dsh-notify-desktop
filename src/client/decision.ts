@@ -4,11 +4,14 @@
  * state. No DOM read and no `Date.now()` happens in here, so every rule is
  * unit-testable.
  *
- * Semantics follow the ZCode reference behaviour: master switch, per-scenario
+ * Semantics follow the ZCode reference behaviour: master switch, per-situation
  * switch, edge-triggered only, a short de-duplication window keyed by turn or
  * request id, and no toast while the user is already looking at that session.
+ * Every toast also carries its situation, which is what the per-situation sound
+ * and popup-text choices are keyed by.
  */
-import type { NotifyReason, NotifySettings, PendingKind, SoundGroup, SoundId } from '../types.ts'
+import type { NotifyReason, NotifySettings, PendingKind, SoundId } from '../types.ts'
+import type { NotifyScenario } from '../scenarios.ts'
 
 /** The de-duplication window: two identical signals inside it collapse into one. */
 export const DEDUPE_MS = 3000
@@ -52,24 +55,86 @@ export type NotifyTrigger =
   | { readonly kind: 'turn'; readonly reason: NotifyReason }
   | { readonly kind: 'pending'; readonly pending: PendingKind }
 
-/** Which of the four situations a trigger belongs to. */
-export function soundGroupOf(trigger: NotifyTrigger): SoundGroup {
-  if (trigger.kind === 'turn') return trigger.reason === 'error' ? 'error' : 'finished'
-  return 'attention'
+/** The situation one turn-end reason belongs to. */
+export function scenarioOfReason(reason: NotifyReason): NotifyScenario {
+  switch (reason) {
+    case 'completed': return 'completed'
+    case 'error': return 'error'
+    case 'aborted': return 'aborted'
+    case 'blocked': return 'blocked'
+    case 'max-tokens': return 'max-tokens'
+  }
+}
+
+/** The situation one blocking interaction belongs to. */
+export function scenarioOfPending(kind: PendingKind): NotifyScenario {
+  switch (kind) {
+    case 'approval': return 'approval'
+    case 'question': return 'question'
+    case 'plan-review': return 'plan-review'
+  }
+}
+
+/** The situation one trigger belongs to. */
+export function scenarioOfTrigger(trigger: NotifyTrigger): NotifyScenario {
+  return trigger.kind === 'turn' ? scenarioOfReason(trigger.reason) : scenarioOfPending(trigger.pending)
 }
 
 /**
- * The sound one situation group plays.
+ * Whether a situation is switched on.
+ *
+ * The reminder has no switch of its own: it only exists while at least one
+ * waiting situation is enabled, and each tracked wait is additionally filtered
+ * by its own kind inside {@link dueReminders}.
  * @param settings - the live settings.
- * @param group - the situation group.
- * @returns the chosen sound, or 'silent' when sounds are switched off.
+ * @param scenario - the situation to test.
+ * @returns true when the situation may notify.
  */
-export function groupSound(settings: NotifySettings, group: SoundGroup): SoundId {
-  return settings.soundEnabled ? settings.sounds[group] : 'silent'
+export function scenarioEnabled(settings: NotifySettings, scenario: NotifyScenario): boolean {
+  switch (scenario) {
+    case 'completed': return settings.notifyCompleted
+    case 'error': return settings.notifyError
+    case 'aborted': return settings.notifyAborted
+    case 'blocked': return settings.notifyBlocked
+    case 'max-tokens': return settings.notifyMaxTokens
+    case 'approval': return settings.notifyApproval
+    case 'question': return settings.notifyQuestion
+    case 'plan-review': return settings.notifyPlanReview
+    case 'reminder':
+      return settings.notifyApproval || settings.notifyQuestion || settings.notifyPlanReview
+  }
+}
+
+/**
+ * The sound one situation plays.
+ *
+ * `sound`-only mode plays the situation's own choice; `notify`-only mode mutes
+ * every toast (the sound-only route never runs for it); `both` is the
+ * historical behaviour. The old `soundEnabled` boolean and its AND with the
+ * master switch collapse into this one field.
+ * @param settings - the live settings.
+ * @param scenario - the situation.
+ * @returns the chosen sound, or 'silent' when toasts are muted.
+ */
+export function scenarioSound(settings: NotifySettings, scenario: NotifyScenario): SoundId {
+  return settings.mode === 'notify' ? 'silent' : settings.sounds[scenario]
+}
+
+/**
+ * Whether a notification in this mode plays a sound without raising a toast.
+ * The caller routes the decision to the host's sound-only route instead of
+ * showing anything.
+ * @param settings - the live settings.
+ * @returns true when nothing visual is raised.
+ */
+export function isSoundOnly(settings: NotifySettings): boolean {
+  return settings.mode === 'sound'
 }
 
 /** A decision to show one toast. */
 export interface NotifyDecision {
+  /** The situation the signal belongs to. */
+  readonly scenario: NotifyScenario
   /** The sound this toast plays ('silent' included). */
   readonly sound: SoundId
   /** The de-duplication key this decision claims. */
@@ -102,10 +167,8 @@ export interface DecisionInput {
 export function decideNotification(input: DecisionInput): NotifyDecision | null {
   const { settings, trigger } = input
   if (!settings.enabled) return null
-  const scenarioOn = trigger.kind === 'turn'
-    ? reasonEnabled(settings, trigger.reason)
-    : pendingEnabled(settings, trigger.pending)
-  if (!scenarioOn) return null
+  const scenario = scenarioOfTrigger(trigger)
+  if (!scenarioEnabled(settings, scenario)) return null
   // ZCode's window suppression: while the harness window is focused the user is
   // already in front of the app, so nothing toasts. 0.2.0-rc.2 exposes no
   // "currently open session" signal, so the focused window is the whole input.
@@ -114,7 +177,8 @@ export function decideNotification(input: DecisionInput): NotifyDecision | null 
   const seenAt = input.recent.get(input.dedupeKey)
   if (seenAt !== undefined && input.now - seenAt < window) return null
   return {
-    sound: groupSound(settings, soundGroupOf(trigger)),
+    scenario,
+    sound: scenarioSound(settings, scenario),
     dedupeKey: input.dedupeKey,
   }
 }

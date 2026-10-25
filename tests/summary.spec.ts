@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SUMMARY_LIMIT, TITLE_NAME_LIMIT, plainSummary, toastTitle, workspaceName } from '../src/client/summary.ts'
+import { SUMMARY_LIMIT, plainSummary, workspaceName } from '../src/client/summary.ts'
 
 describe('toast copy', () => {
   it('flattens markdown into one readable line', () => {
@@ -66,13 +66,5 @@ describe('toast copy', () => {
     expect(workspaceName('D:\\projects\\notification plugin')).toBe('notification plugin')
     expect(workspaceName('E:/dsh-plugins/dsh-notify-desktop/')).toBe('dsh-notify-desktop')
     expect(workspaceName(undefined)).toBe('')
-  })
-
-  it('composes the workspace · status title', () => {
-    expect(toastTitle('notification plugin', '任务完成')).toBe('notification plugin · 任务完成')
-    expect(toastTitle('  ', '任务完成')).toBe('任务完成')
-    const long = toastTitle('n'.repeat(100), '等待审批')
-    expect(long.startsWith('n'.repeat(TITLE_NAME_LIMIT - 1) + '…')).toBe(true)
-    expect(long.endsWith('· 等待审批')).toBe(true)
   })
 })

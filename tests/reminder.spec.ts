@@ -14,6 +14,7 @@ function wait(patch: Partial<PendingWait> = {}): PendingWait {
     sessionId: 's1',
     requestId: 'r1',
     kind: 'approval',
+    summary: '是否运行 pnpm run check？',
     firstSeenAt: 0,
     reminded: false,
     ...patch,

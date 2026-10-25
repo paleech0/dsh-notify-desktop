@@ -6,6 +6,7 @@
 import type { SoundId } from '../types.ts';
 import type { SoundLibrary } from '../types.ts';
 import type { NotifyReason, PendingKind } from '../types.ts';
+import type { NotifyScenario } from '../scenarios.ts';
 /**
  * Send one diagnostics line to the host's report route. The desktop shell
  * cannot show a plugin's renderer console to anyone without DevTools open, so
@@ -25,8 +26,8 @@ export type TitleKey = 'notify.shortCompleted' | 'notify.shortError' | 'notify.s
 export declare function shortReasonKey(reason: NotifyReason): TitleKey;
 /** The short status key for one blocking interaction. */
 export declare function shortPendingKey(kind: PendingKind): TitleKey;
-/** The notification body: the projected reply snippet, or the fallback line. */
-export declare function bodyText(body: string, fallback: string): string;
+/** The short status key for one situation (composed into the title, and the preview). */
+export declare function shortScenarioKey(scenario: NotifyScenario): TitleKey;
 /**
  * The grouping tag. Turn- and request-scoped rather than session-scoped: the
  * OS replaces same-tag toasts, and a stale same-tag entry left in the action
@@ -79,6 +80,17 @@ export declare function requestHostToast(request: ToastRequest): boolean;
  * @returns a promise that settles when the host answered (failures are silent).
  */
 export declare function silenceSounds(): Promise<void>;
+/**
+ * Play one sound without raising a toast (sound-only notification mode, and
+ * the audition in that mode).
+ *
+ * The id is validated by the host exactly as it is for a toast — the client
+ * never sends a path — so this is as safe as the toast channel and just as
+ * silencable.
+ * @param sound - the sound id to play.
+ * @returns true when the request was dispatched.
+ */
+export declare function playSoundOnly(sound: SoundId): boolean;
 /**
  * Ask the host to open the Windows file picker for a wav.
  * @returns the chosen absolute path, or '' when the user cancelled.

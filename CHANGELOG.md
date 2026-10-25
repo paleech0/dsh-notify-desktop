@@ -4,6 +4,35 @@ All notable changes to this plugin are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- The settings section is now three cards: **Desktop notifications** (master switch, the test button
+  directly below it, and the delivery mode), **Notification setup** (one row per enabled situation with
+  its sound, its popup text and a live preview, plus the two collapsible libraries) and **Notify me in
+  which of these situations** (the two groups of switches, each row carrying an example sentence).
+- **Sounds are per situation** (nine: five turn ends, three waits, one reminder) instead of four groups.
+  Existing group choices migrate automatically at read time - no settings are lost.
+- **Popup texts are per situation.** Each situation can save up to three named texts
+  (name / title / body, with the `{工作区} {状态} {内容} {分钟}` placeholders); the picker offers the built-in
+  default and the saved texts. The wording lives in
+  `%LOCALAPPDATA%\dsh-notify\templates\templates.json`; a customized pair from the previous global
+  template iteration is migrated into each enabled situation on first start.
+- The test notification moved under the master switch and its description now says it is for checking
+  the configuration. The per-row **Preview** uses the situation's real text and sound; only the test
+  toast keeps fixed copy.
+- Custom sounds and custom texts are collapsible; the transcode cache lives inside the custom-sounds
+  block. Deleting a custom sound or text asks for confirmation inline with a red destructive button.
+- The four sound groups' preview buttons and fixed preview copy are gone, replaced by the per-situation
+  preview.
+
+### Added
+
+- Host route `GET/POST /dsh-notify/text-templates`: reads every saved text and saves or deletes one,
+  with per-situation validation (at most three, bounded name/title/body, atomic file replace).
+- `GET /dsh-notify/debug` now also reports text-template save/delete lines in the client report ring.
+
 ## [0.1.1] - 2026-10-18
 
 ### Verified

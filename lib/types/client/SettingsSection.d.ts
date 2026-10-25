@@ -1,15 +1,21 @@
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
-import { type NotifySettings, type SoundId, type SoundLibrary } from '../types.ts';
+import type { NotifySettings, SoundLibrary } from '../types.ts';
+import { type NotifyScenario } from '../scenarios.ts';
 import type { SoundCacheInfo } from './notifier.ts';
 import type { SettingsStore } from './settings.ts';
+import type { TextStore } from './texts.ts';
 /** Injected business face of the section. */
 export interface NotifySectionInjected {
     /** The live settings store. */
     store: SettingsStore;
     /** Persist one patch. */
     set: (patch: Partial<NotifySettings>) => void;
-    /** Show one test toast, optionally playing a specific sound. */
-    sendTest: (sound?: SoundId) => void;
+    /** Show the test notification: fixed copy, fixed default sound. */
+    sendTest: () => void;
+    /** Audition one situation the way the current delivery mode would. */
+    previewScenario: (scenario: NotifyScenario) => void;
+    /** The saved popup texts, loaded from the host. */
+    texts: TextStore;
     /** Open the Windows file picker and return the chosen wav path ('' = cancelled). */
     pickFile: () => Promise<string>;
     /** Read the sound library: the plugin's sounds and the user's imports. */

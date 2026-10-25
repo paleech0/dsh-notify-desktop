@@ -43,6 +43,8 @@ export interface SoundPickerProps {
   readonly labelOf: (id: SoundId) => string
   /** Locale lookup. */
   readonly t: (key: NotifyKey) => string
+  /** Grey the trigger out (the master switch is off); the value stays. */
+  readonly disabled?: boolean
   /** Called with the newly chosen sound. */
   readonly onPick: (id: SoundId) => void
 }
@@ -104,6 +106,7 @@ export function SoundPicker(props: SoundPickerProps): JSX.Element {
         className="dsh_notify_pickerTrigger"
         aria-haspopup="listbox"
         aria-expanded={open}
+        disabled={props.disabled}
         onClick={() => {
           if (!open) setExpanded(null)
           setOpen(!open)
@@ -113,7 +116,7 @@ export function SoundPicker(props: SoundPickerProps): JSX.Element {
         <span className="dsh_notify_pickerCaret" aria-hidden="true" />
       </button>
       {!open ? null : (
-        <div className="dsh_notify_pickerPanel" role="listbox" aria-label={props.t('settings.sounds.title')}>
+        <div className="dsh_notify_pickerPanel" role="listbox" aria-label={props.t('settings.sounds.pickerLabel')}>
           {sections.map(section => (
             <div className="dsh_notify_pickerSection" key={section.id}>
               <button

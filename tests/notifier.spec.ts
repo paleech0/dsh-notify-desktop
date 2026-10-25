@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { bodyText, notificationTag, pendingTag, reminderTag, shortPendingKey, shortReasonKey, showToast } from '../src/client/notifier.ts'
+import { SOUND_ROUTE } from '../src/protocol.ts'
+import { notificationTag, pendingTag, playSoundOnly, reminderTag, shortPendingKey, shortReasonKey, showToast } from '../src/client/notifier.ts'
 
 /** What the fake platform saw. */
 interface FakePlatform {
@@ -55,8 +56,6 @@ describe('toast rendering', () => {
     expect(shortPendingKey('approval')).toBe('notify.shortApproval')
     expect(shortPendingKey('question')).toBe('notify.shortQuestion')
     expect(shortPendingKey('plan-review')).toBe('notify.shortPlanReview')
-    expect(bodyText('  ', 'fallback')).toBe('fallback')
-    expect(bodyText(' hi ', 'fallback')).toBe('hi')
   })
 
   it('keeps tags unique per turn, per request, and per reminder', () => {
@@ -102,5 +101,34 @@ describe('toast rendering', () => {
   it('never throws without a platform', () => {
     delete (globalThis as { Notification?: unknown }).Notification
     expect(showToast({ title: 't', body: 'b', tag: 'g', sound: 'default', onClick: () => {} })).toBe(false)
+  })
+})
+
+describe('sound-only playback', () => {
+  it('reports failure when there is no fetch at all', () => {
+    const original = (globalThis as { fetch?: unknown }).fetch
+    ;(globalThis as { fetch?: unknown }).fetch = undefined
+    try {
+      expect(playSoundOnly('file:ding')).toBe(false)
+    } finally {
+      ;(globalThis as { fetch?: unknown }).fetch = original
+    }
+  })
+
+  it('posts the sound id to the sound-only route', async () => {
+    const calls: Array<{ url: string; body: string }> = []
+    ;(globalThis as { fetch?: unknown }).fetch = ((url: string | URL, init?: RequestInit) => {
+      calls.push({ url: String(url), body: String(init?.body ?? '') })
+      return Promise.resolve(new Response(null, { status: 204 }))
+    }) as typeof fetch
+    try {
+      expect(playSoundOnly('file:ding')).toBe(true)
+      await Promise.resolve()
+      expect(calls).toHaveLength(1)
+      expect(calls[0]?.url).toBe(SOUND_ROUTE)
+      expect(JSON.parse(calls[0]?.body ?? '{}')).toEqual({ sound: 'file:ding' })
+    } finally {
+      delete (globalThis as { fetch?: unknown }).fetch
+    }
   })
 })

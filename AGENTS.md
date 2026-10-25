@@ -34,11 +34,42 @@
 | **有焦点** | **不弹**（按设计抑制） | — |
 | **无焦点**（可见但没被选中 / 最小化 / 隐藏） | 宿主 PowerShell Toast（AUMID `electron.app.DeepSeek Harness`） | 只能回前台 |
 | 无焦点但宿主路由不可达 | 渲染层 `new Notification()`（兜底） | 回前台 + 跳会话 |
+| 通知形式 = 仅提示音（2026-10-25 新增） | **不弹任何东西**，`POST /dsh-notify/sound` 让宿主单独播放音效 | 无 |
 
 **判据是 `!document.hasFocus()`，不是 `document.hidden`**：渲染层通知只在窗口有焦点时可靠，而那时按设计不弹 ——
 所以按「可见/隐藏」分流等于让最常见的场景落到一条不可靠的通道上（实测：最小化、可见但失焦，渲染层都是静默失效）。
 
 宿主 Toast 的三个硬约束（实测，别"优化"掉）：PowerShell **绝对路径**、**不要 `detached`**、**stdio 保留管道并 drain**（`'ignore'` 会让 Toast 静默失效且退出码仍为 0）。
+
+## 通知形式、按情况音效与弹窗文本（2026-10-25 重构）
+
+**情况（scenario）是唯一的分组键**，共 9 个（`src/scenarios.ts` 的 `SCENARIO_IDS`，顺序即 UI 顺序）：
+`completed / error / aborted / blocked / max-tokens / approval / question / plan-review / reminder`。
+前 5 个由 `turn/end` 的 reason 决定，中间 3 个由阻塞交互 kind 决定，`reminder` 没有独立开关（任一等待情况开启时才存在）。
+**不要再引入"4 组音效"的概念**：音效和文本都按 9 个情况分别存（`settings.sounds` / `settings.texts`）。
+
+- 设置模型：`enabled`（总开关）× `mode: 'both' | 'notify' | 'sound'` × `sounds[scenario]` × `texts[scenario]`
+  （`'default'` 或磁盘模板 id）。决策返回 `scenario + sound`，**客户端按 mode 分流**：
+  `sound` → 仅发声路由；`notify` → 静音 Toast；`both` → 照旧。`scenarioSound()` 在 `notify` 下统一返回 `'silent'`。
+- 迁移（都在 `readSettings` 里、不换存储键）：`soundEnabled=false` → `mode:'notify'`；
+  旧 4 组 `sounds.finished/error/attention/reminder` 按组下发到 9 个情况；旧全局 `titleTemplate/bodyTemplate`
+  若有自定义值 → 放进 `legacyText`，客户端启动后写进各已启用情况的磁盘库并清掉该字段（失败则下次启动重试）。
+- UI 三张卡：**① 桌面通知**（总开关 → 发送测试通知 → 通知形式三选一）→ **② 通知自定义**（按已勾选情况的行：
+  音效选择器 + 文本选择器 + 预览效果；下方两个可折叠库：自定义音效（含转换缓存）、自定义文本）→
+  **③ 选择接收以下哪种情况的通知**（"会话结束"5 个开关 / "等待你确认"3 个开关，每行带例子）。
+- 总开关关闭时灰显：通知形式、各情况行的音效/文本选择、预览效果、催办分钟数、卡三全部开关、测试按钮；
+  **只有**自定义音效（含缓存清理）和自定义文本仍可编辑；**总开关本身不变灰**。取消勾选只是隐藏该情况行，已配内容保留。
+- 测试通知（卡一内）：**固定** `system:default` + 固定文案 + 永远走宿主 Toast 通道（无视焦点），不受任何其他设置影响。
+- 预览效果（卡二每行）：用该情况**当前选中的文本**（默认文本用示例值渲染）+ 该情况音效，跟随 mode；
+  这不是测试通知，文案不固定。
+- 弹窗文本：默认文本 = 内置 `{工作区} · {状态}` / `{内容}`（`DEFAULT_TITLE_TEMPLATE/BODY_TEMPLATE`）；
+  自定义文本每个情况最多 **3 套**，每套有名称（≤24）/标题（≤120）/正文（≤300），占位符
+  `{工作区} {状态} {内容} {分钟}`（中英两套拼写都认）。`{内容}` 为空 → 正文回退该情况的内置提示句；
+  选中模板被删 → 回退默认文本并写诊断。
+- 文本内容存磁盘：`%LOCALAPPDATA%\dsh-notify\templates\templates.json`（与 `custom`/`sounds` 同级），
+  按情况分组、每组 ≤3；写入 = 临时文件 + rename；损坏按空库处理。宿主路由 `GET/POST /dsh-notify/text-templates`
+  负责读写与校验（`src/text-store.ts` 纯逻辑可测）。客户端**启动时加载一次**并缓存（`src/client/texts.ts`），
+  编辑后由 store 回填；设置里只存模板 id。
 
 ## 音效（2026-10-10 实测，别再往媒体栈上撞）
 
@@ -47,10 +78,15 @@
   `WMPlayer.OCX` → `state=9 / duration=0`。**沙箱 pwsh 和真 STA `WindowsPowerShell` 结果一致**。别再"优化"回媒体栈。
 - 非 wav 自定义音效：宿主先用 `ffmpeg` 转成 wav（缓存 `%LOCALAPPDATA%\dsh-notify\sounds\<源路径 sha1 前 16 位>.wav`）再交给 SoundPlayer。
   ffmpeg 从 **PATH** 找（`ffmpeg.exe`），**wav 与内置音效库不依赖它**；找不到 → 静音，诊断接口 `media.ffmpeg` 会显示 `null`。
-- 文件类音效**播放封顶 8 秒**（宿主 `setTimeout` + kill 子进程）；关「提示音」总开关、或窗口重获焦点，都会立刻掐（`POST /dsh-notify/silence`）。
+- 文件类音效**播放封顶 8 秒**（宿主 `setTimeout` + kill 子进程）；关总开关、切到「仅通知」、或窗口重获焦点，都会立刻掐（`POST /dsh-notify/silence`）。
+- **仅发声路由**（`POST /dsh-notify/sound`，2026-10-25 新增）：id 解析与 Toast 完全同源（目录/白名单），播放复用同一套
+  SoundPlayer 子进程管线（8 秒封顶 + soundPlayers + silence）。`system:*` 事件音**没有弹窗可挂 `<audio>`**，宿主用
+  `reg.exe`（静态 argv，一次查整棵 `HKCU\AppEvents\Schemes\Apps\.Default`）解析 `.Current` 的 wav——
+  本机实测 5 个事件全部解析成功且与 IM=SMS 重合（spike S3）；解析失败 → 静音 + debug 上报，下次重查。
+  ⚠️ Mimosa 钩子拦一切**新增** PowerShell spawn（含 `-File`/`-EncodedCommand`/纯 env 形态）——改这段代码前先和用户对齐。
 - 客户端**只发音效 id**；只有 `custom` 才附带路径，宿主校验「绝对路径 + 扩展名白名单 + 文件存在」；路径经**环境变量**传递，不进命令文本（同 XML 的规矩）。
 - Toast XML 只能引用 `ms-winsoundevent:` 那 5 个事件，**且本机 `Notification.IM` 与 `Notification.SMS` 指向同一个 wav**、四个音彼此很像 —— 这就是"文件类音效"存在的理由，别删。
-- 缓存与清理：`GET/POST /dsh-notify/sound-cache`（设置页「转换缓存」行）；清的是插件自己转码出来的 wav，源文件不动。
+- 缓存与清理：`GET/POST /dsh-notify/sound-cache`（设置页「自定义音效」折叠里的「转换缓存」行）；清的是插件自己转码出来的 wav，源文件不动。
 - 音效库三个分区：`Windows 音效`（静态目录 `SOUND_CHOICES`）、`作者音效`（仓库 `sounds/` 文件夹，宿主**每次请求扫目录**，加文件不用改代码）、`自定义音效`（`%LOCALAPPDATA%\dsh-notify\custom`，用户导入的副本）。
   id 形如 `author:<文件名>` / `custom:<文件名>`，**文件名一律来自宿主侧目录列表**，渲染层只能发音效 id。
 
@@ -77,10 +113,13 @@
 
 ## 目录
 
-    src/index.ts          host 入口：注册 notify 投影 + /dsh-notify/focus 路由
+    src/index.ts          host 入口：注册 notify 投影 + 全部同源路由
     src/projection.ts     host 纯 fold（turn 结束原因/正文 + 阻塞交互）
+    src/text-store.ts     host 文本模板存储（校验、上限、原子写）
+    src/scenarios.ts      两端共享的 9 个情况与文本模板模型
     src/protocol.ts       两端共享的线上词汇（路由与请求头）
-    src/client/…          client 半侧：决策 / 通知 / 催办 / 跳转 / 设置段 / 文案 / 样式
+    src/client/…          client 半侧：决策 / 通知 / 催办 / 跳转 / 设置段 / 文案 / 样式 /
+                          文本库缓存（texts.ts）、文本选择器与管理器（TextPicker/TextManager）
     tests/                vitest（决策、催办、投影、通知器、跳转、设置段）
     docs/spikes/          实测记录（E1 通道、S2 托盘角标）
     docs/acceptance/      端到端验收记录

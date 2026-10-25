@@ -9,15 +9,17 @@ import {
   DELETE_SOUND_ROUTE,
   FOCUS_HEADER,
   FOREGROUND_ROUTE,
-  IMPORT_SOUND_ROUTE,
-  SOUND_LIBRARY_ROUTE,
   HOST_TOAST_ROUTE,
+  IMPORT_SOUND_ROUTE,
   PICK_FILE_ROUTE,
   REPORT_ROUTE,
   SILENCE_ROUTE,
   SOUND_CACHE_ROUTE,
+  SOUND_LIBRARY_ROUTE,
+  SOUND_ROUTE,
 } from '../protocol.ts'
 import type { NotifyReason, PendingKind } from '../types.ts'
+import type { NotifyScenario } from '../scenarios.ts'
 
 /**
  * Send one diagnostics line to the host's report route. The desktop shell
@@ -78,10 +80,19 @@ export function shortPendingKey(kind: PendingKind): TitleKey {
   }
 }
 
-/** The notification body: the projected reply snippet, or the fallback line. */
-export function bodyText(body: string, fallback: string): string {
-  const trimmed = body.trim()
-  return trimmed === '' ? fallback : trimmed
+/** The short status key for one situation (composed into the title, and the preview). */
+export function shortScenarioKey(scenario: NotifyScenario): TitleKey {
+  switch (scenario) {
+    case 'completed': return 'notify.shortCompleted'
+    case 'error': return 'notify.shortError'
+    case 'aborted': return 'notify.shortAborted'
+    case 'blocked': return 'notify.shortBlocked'
+    case 'max-tokens': return 'notify.shortMaxTokens'
+    case 'approval': return 'notify.shortApproval'
+    case 'question': return 'notify.shortQuestion'
+    case 'plan-review': return 'notify.shortPlanReview'
+    case 'reminder': return 'notify.shortReminder'
+  }
 }
 
 /**
@@ -177,6 +188,31 @@ export function silenceSounds(): Promise<void> {
   if (fetchImpl === undefined) return Promise.resolve()
   return fetchImpl(SILENCE_ROUTE, { method: 'POST', headers: { [FOCUS_HEADER]: '1' } })
     .then(() => undefined, () => undefined)
+}
+
+/**
+ * Play one sound without raising a toast (sound-only notification mode, and
+ * the audition in that mode).
+ *
+ * The id is validated by the host exactly as it is for a toast — the client
+ * never sends a path — so this is as safe as the toast channel and just as
+ * silencable.
+ * @param sound - the sound id to play.
+ * @returns true when the request was dispatched.
+ */
+export function playSoundOnly(sound: SoundId): boolean {
+  try {
+    const fetchImpl = globalThis.fetch
+    if (fetchImpl === undefined) return false
+    void fetchImpl(SOUND_ROUTE, {
+      method: 'POST',
+      headers: { [FOCUS_HEADER]: '1', 'content-type': 'application/json' },
+      body: JSON.stringify({ sound }),
+    }).catch(() => undefined)
+    return true
+  } catch {
+    return false
+  }
 }
 
 /**

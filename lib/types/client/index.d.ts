@@ -6,6 +6,10 @@
  * the visible one), decides whether the signal deserves a Windows toast, shows
  * it, and — on click — raises the window and jumps to that session.
  *
+ * Every situation carries its own sound and popup text. The sounds are a plain
+ * settings map; the texts are saved by the host to disk and cached here, with
+ * only the chosen template id in the settings.
+ *
  * Nothing here extends a harness allowlist: the projection, the session list,
  * the settings slot, and the locale registry are all ordinary plugin seams.
  */

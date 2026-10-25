@@ -4,11 +4,14 @@
  * state. No DOM read and no `Date.now()` happens in here, so every rule is
  * unit-testable.
  *
- * Semantics follow the ZCode reference behaviour: master switch, per-scenario
+ * Semantics follow the ZCode reference behaviour: master switch, per-situation
  * switch, edge-triggered only, a short de-duplication window keyed by turn or
  * request id, and no toast while the user is already looking at that session.
+ * Every toast also carries its situation, which is what the per-situation sound
+ * and popup-text choices are keyed by.
  */
-import type { NotifyReason, NotifySettings, PendingKind, SoundGroup, SoundId } from '../types.ts';
+import type { NotifyReason, NotifySettings, PendingKind, SoundId } from '../types.ts';
+import type { NotifyScenario } from '../scenarios.ts';
 /** The de-duplication window: two identical signals inside it collapse into one. */
 export declare const DEDUPE_MS = 3000;
 /** Map a raw projection reason to a notifiable reason, or undefined when unknown. */
@@ -25,17 +28,47 @@ export type NotifyTrigger = {
     readonly kind: 'pending';
     readonly pending: PendingKind;
 };
-/** Which of the four situations a trigger belongs to. */
-export declare function soundGroupOf(trigger: NotifyTrigger): SoundGroup;
+/** The situation one turn-end reason belongs to. */
+export declare function scenarioOfReason(reason: NotifyReason): NotifyScenario;
+/** The situation one blocking interaction belongs to. */
+export declare function scenarioOfPending(kind: PendingKind): NotifyScenario;
+/** The situation one trigger belongs to. */
+export declare function scenarioOfTrigger(trigger: NotifyTrigger): NotifyScenario;
 /**
- * The sound one situation group plays.
+ * Whether a situation is switched on.
+ *
+ * The reminder has no switch of its own: it only exists while at least one
+ * waiting situation is enabled, and each tracked wait is additionally filtered
+ * by its own kind inside {@link dueReminders}.
  * @param settings - the live settings.
- * @param group - the situation group.
- * @returns the chosen sound, or 'silent' when sounds are switched off.
+ * @param scenario - the situation to test.
+ * @returns true when the situation may notify.
  */
-export declare function groupSound(settings: NotifySettings, group: SoundGroup): SoundId;
+export declare function scenarioEnabled(settings: NotifySettings, scenario: NotifyScenario): boolean;
+/**
+ * The sound one situation plays.
+ *
+ * `sound`-only mode plays the situation's own choice; `notify`-only mode mutes
+ * every toast (the sound-only route never runs for it); `both` is the
+ * historical behaviour. The old `soundEnabled` boolean and its AND with the
+ * master switch collapse into this one field.
+ * @param settings - the live settings.
+ * @param scenario - the situation.
+ * @returns the chosen sound, or 'silent' when toasts are muted.
+ */
+export declare function scenarioSound(settings: NotifySettings, scenario: NotifyScenario): SoundId;
+/**
+ * Whether a notification in this mode plays a sound without raising a toast.
+ * The caller routes the decision to the host's sound-only route instead of
+ * showing anything.
+ * @param settings - the live settings.
+ * @returns true when nothing visual is raised.
+ */
+export declare function isSoundOnly(settings: NotifySettings): boolean;
 /** A decision to show one toast. */
 export interface NotifyDecision {
+    /** The situation the signal belongs to. */
+    readonly scenario: NotifyScenario;
     /** The sound this toast plays ('silent' included). */
     readonly sound: SoundId;
     /** The de-duplication key this decision claims. */
