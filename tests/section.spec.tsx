@@ -383,6 +383,10 @@ describe('notification settings section', () => {
     })
     const editor = container.querySelector('.dsh_notify_editor')
     expect(editor).not.toBeNull()
+    // the placeholder chips now carry a one-line explanation each
+    expect(container.querySelectorAll('.dsh_notify_placeholderHint')).toHaveLength(4)
+    expect(container.textContent).toContain(zh['settings.textEditor.placeholderWorkspace'])
+    expect(container.textContent).toContain(zh['settings.textEditor.placeholderMinutes'])
     const inputs = [...container.querySelectorAll('.dsh_notify_editorRow input')] as HTMLInputElement[]
     const textarea = container.querySelector('.dsh_notify_editorRow textarea') as HTMLTextAreaElement
     await typeInto(inputs[0] as HTMLInputElement, '搞定了')

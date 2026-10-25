@@ -33,6 +33,8 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   up; descriptions got a little more contrast and all numerals are tabular.
 - The situations card moved directly under the master-switch card, above "Notification setup"; the
   example sentences lost their "例：" prefix.
+- The template editor now explains each placeholder next to its insertable chip, in an aligned
+  two-column hint block (what {工作区} / {状态} / {内容} / {分钟} map to).
 
 ### Added
 

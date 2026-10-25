@@ -44,6 +44,14 @@ const PROBLEM_KEY: Readonly<Record<string, NotifyKey>> = {
   limit: 'settings.textLibrary.limit',
 }
 
+/** The four placeholders, with the explanation shown under the editor. */
+const PLACEHOLDER_HINTS: ReadonlyArray<{ token: string; hint: NotifyKey }> = [
+  { token: '{工作区}', hint: 'settings.textEditor.placeholderWorkspace' },
+  { token: '{状态}', hint: 'settings.textEditor.placeholderStatus' },
+  { token: '{内容}', hint: 'settings.textEditor.placeholderBody' },
+  { token: '{分钟}', hint: 'settings.textEditor.placeholderMinutes' },
+]
+
 /** Props of {@link TextManager}. */
 export interface TextManagerProps {
   /** The situations to list, in presentation order. */
@@ -331,19 +339,23 @@ function TextEditor(props: TextEditorProps): JSX.Element {
         }}
       />
       <div className="dsh_notify_editorPlaceholders">
-        <span className="dsh_notify_rowDesc">{props.t('settings.textEditor.placeholders')}</span>
-        {['{工作区}', '{状态}', '{内容}', '{分钟}'].map(token => (
-          <button
-            key={token}
-            type="button"
-            className="dsh_notify_chip"
-            onClick={() => {
-              props.onChange({ body: props.state.body + token })
-            }}
-          >
-            {token}
-          </button>
-        ))}
+        <div className="dsh_notify_rowDesc">{props.t('settings.textEditor.placeholders')}</div>
+        <div className="dsh_notify_placeholderHints">
+          {PLACEHOLDER_HINTS.map(placeholder => (
+            <div className="dsh_notify_placeholderHint" key={placeholder.token}>
+              <button
+                type="button"
+                className="dsh_notify_chip"
+                onClick={() => {
+                  props.onChange({ body: props.state.body + placeholder.token })
+                }}
+              >
+                {placeholder.token}
+              </button>
+              <span className="dsh_notify_placeholderHintText">{props.t(placeholder.hint)}</span>
+            </div>
+          ))}
+        </div>
       </div>
       <div className="dsh_notify_editorPreview">
         <div className="dsh_notify_rowDesc">{props.t('settings.textEditor.preview')}</div>

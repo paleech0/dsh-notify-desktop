@@ -417,7 +417,21 @@ export const cssText = `
   color: inherit;
   resize: vertical;
 }
-.dsh_notify_editorPlaceholders { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+/* The placeholder list: a chip per token and its explanation, aligned in two columns. */
+.dsh_notify_editorPlaceholders { display: flex; flex-direction: column; gap: 6px; }
+.dsh_notify_placeholderHints {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 10px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.2));
+  background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.05));
+}
+.dsh_notify_placeholderHint { display: contents; }
+.dsh_notify_placeholderHint .dsh_notify_chip { justify-self: start; }
+.dsh_notify_placeholderHintText { font-size: 11px; line-height: 1.55; opacity: 0.7; }
 .dsh_notify_chip {
   padding: 2px 8px;
   font-family: var(--ds-font-family-code, "Cascadia Mono", Consolas, "Noto Sans SC", monospace);

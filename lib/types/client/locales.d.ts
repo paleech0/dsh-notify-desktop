@@ -90,7 +90,11 @@ export declare const zh: {
     readonly 'settings.textEditor.defaultName': "自定义 {n}";
     readonly 'settings.textEditor.titleField': "标题";
     readonly 'settings.textEditor.bodyField': "正文";
-    readonly 'settings.textEditor.placeholders': "可用占位符（点击插入）：";
+    readonly 'settings.textEditor.placeholders': "可用占位符（点一下插入正文）：";
+    readonly 'settings.textEditor.placeholderWorkspace': "会话所在的工作目录名，用来区分是哪个项目";
+    readonly 'settings.textEditor.placeholderStatus': "这条通知表示什么：任务完成 / 待审批 / 仍未处理…";
+    readonly 'settings.textEditor.placeholderBody': "这一轮回复的摘要；等待类通知是提问或审批的摘要";
+    readonly 'settings.textEditor.placeholderMinutes': "已经等待的分钟数，只有「超时催办」会出现";
     readonly 'settings.textEditor.preview': "预览：";
     readonly 'settings.textEditor.save': "保存";
     readonly 'settings.textEditor.cancel': "取消";
@@ -232,6 +236,10 @@ export declare const en: {
     'settings.textEditor.titleField': string;
     'settings.textEditor.bodyField': string;
     'settings.textEditor.placeholders': string;
+    'settings.textEditor.placeholderWorkspace': string;
+    'settings.textEditor.placeholderStatus': string;
+    'settings.textEditor.placeholderBody': string;
+    'settings.textEditor.placeholderMinutes': string;
     'settings.textEditor.preview': string;
     'settings.textEditor.save': string;
     'settings.textEditor.cancel': string;

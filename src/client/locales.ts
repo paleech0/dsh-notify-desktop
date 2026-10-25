@@ -23,7 +23,7 @@ export const zh = {
   'settings.mode.sound': '仅提示音',
   'settings.mode.soundDesc': '只播该情况所选音效，不弹窗。',
 
-  // Card 2 — per-situation sound + text, and the two libraries.
+  // Card 3 — per-situation sound + text, and the two libraries.
   'settings.customize.title': '通知自定义',
   'settings.customize.desc': '给每个已勾选的情况分别挑选音效和弹窗文本；点「预览效果」马上看/听。没勾的情况不会出现在这里，去上面的「选择接收以下哪种情况的通知」里勾选。',
   'settings.scenario.sound': '音效',
@@ -103,7 +103,11 @@ export const zh = {
   'settings.textEditor.defaultName': '自定义 {n}',
   'settings.textEditor.titleField': '标题',
   'settings.textEditor.bodyField': '正文',
-  'settings.textEditor.placeholders': '可用占位符（点击插入）：',
+  'settings.textEditor.placeholders': '可用占位符（点一下插入正文）：',
+  'settings.textEditor.placeholderWorkspace': '会话所在的工作目录名，用来区分是哪个项目',
+  'settings.textEditor.placeholderStatus': '这条通知表示什么：任务完成 / 待审批 / 仍未处理…',
+  'settings.textEditor.placeholderBody': '这一轮回复的摘要；等待类通知是提问或审批的摘要',
+  'settings.textEditor.placeholderMinutes': '已经等待的分钟数，只有「超时催办」会出现',
   'settings.textEditor.preview': '预览：',
   'settings.textEditor.save': '保存',
   'settings.textEditor.cancel': '取消',
@@ -111,7 +115,7 @@ export const zh = {
   'settings.textEditor.titleRequired': '标题不能为空（最多 120 字）',
   'settings.textEditor.bodyRequired': '正文不能为空（最多 300 字）',
 
-  // Card 3 — which situations notify at all.
+  // Card 2 — which situations notify at all.
   'settings.situations.title': '选择接收以下哪种情况的通知',
   'settings.situations.desc': '勾选后，只有这些情况会提醒你；没勾的既不弹窗也不出声。勾选会让下面的「通知自定义」出现对应的设置行。',
   'settings.situations.turnTitle': '会话结束',
@@ -258,7 +262,11 @@ export const en = {
   'settings.textEditor.defaultName': 'Custom {n}',
   'settings.textEditor.titleField': 'Title',
   'settings.textEditor.bodyField': 'Body',
-  'settings.textEditor.placeholders': 'Placeholders (click to insert):',
+  'settings.textEditor.placeholders': 'Placeholders (click to insert into the body):',
+  'settings.textEditor.placeholderWorkspace': 'The session\'s working directory - which project this is',
+  'settings.textEditor.placeholderStatus': 'What the notification says: completed / needs approval / still waiting…',
+  'settings.textEditor.placeholderBody': 'This turn\'s reply summary; for a wait, the question or approval summary',
+  'settings.textEditor.placeholderMinutes': 'Minutes already waited - only the reminder has it',
   'settings.textEditor.preview': 'Preview:',
   'settings.textEditor.save': 'Save',
   'settings.textEditor.cancel': 'Cancel',
