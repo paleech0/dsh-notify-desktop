@@ -6,7 +6,7 @@ Windows toast notifications for the DSH desktop app. A session finishes, fails, 
 something — you get a native notification with a sound and a piece of text chosen for that situation, and
 clicking it brings the DSH window back to the front.
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="Desktop notifications and the situation list">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="Desktop notifications and the situation list (top half)">
 
 ## What you get
 
@@ -69,6 +69,8 @@ this machine; every change applies immediately.
 | A session ends | Completed / Error / Aborted / Blocked / Token limit reached (each row carries an example) |
 | Waiting on you | Waiting for approval / an answer / a plan review (each row carries an example) |
 
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-situations.png" width="460" alt="Situation list (bottom half): the three waiting-on-you cases">
+
 **Card 3 — Notification setup: the sound and text of each situation:**
 
 | Control | What it does |
@@ -83,8 +85,7 @@ this machine; every change applies immediately.
 Ticking a situation makes its row appear in the "Notification setup" card below; unticking it only hides the
 row and keeps its sound and text, so ticking it again brings them back.
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-situations.png" width="460" alt="Notification setup (top): sound and text per situation">
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize.png" width="460" alt="Notification setup (bottom): reminder minutes and the two collapsible libraries">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize.png" width="460" alt="Notification setup: sound and text per situation, reminder minutes and the two collapsible libraries">
 
 ## Sounds
 

@@ -5,7 +5,7 @@
 给 **DSH 桌面端** 加 Windows 原生通知：会话跑完、出错、或停下来等你确认时弹一条系统通知，并播放**为这种情况挑好的音效**、
 显示**为这种情况写好的文字**；点通知把 DSH 窗口拉回前台。
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="桌面通知与通知情况">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="桌面通知与通知情况（上半）">
 
 ## 它能给你什么
 
@@ -63,6 +63,8 @@
 | 会话结束 | 正常完成 / 出错 / 被中止 / 被阻塞 / 达到 Token 上限（每行附一句例子） |
 | 等待你确认 | 等待审批 / 等待回答 / 等待计划评审（每行附一句例子） |
 
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-situations.png" width="460" alt="通知情况（下半）：等待你确认的三种情形">
+
 **卡三「通知自定义」—— 每个情况的声音和文字：**
 
 | 控件 | 作用 |
@@ -76,8 +78,7 @@
 
 勾选情况后，下面的「通知自定义」会实时出现对应行；取消勾选只是隐藏，已配的音效和文本都保留，重新勾选回来还在。
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-situations.png" width="460" alt="通知自定义（上）：按情况选音效与文本">
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize.png" width="460" alt="通知自定义（下）：催办分钟数与两个折叠库">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize.png" width="460" alt="通知自定义：每个情况的音效、文本与两个折叠库">
 
 ## 音效
 
