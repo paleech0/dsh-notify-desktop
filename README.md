@@ -6,7 +6,7 @@ Windows toast notifications for the DSH desktop app. A session finishes, fails, 
 something — you get a native notification with a sound and a piece of text chosen for that situation, and
 clicking it brings the DSH window back to the front.
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="Notification settings">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="Desktop notifications and the situation list">
 
 ## What you get
 
@@ -83,6 +83,9 @@ this machine; every change applies immediately.
 Ticking a situation makes its row appear in the "Notification setup" card below; unticking it only hides the
 row and keeps its sound and text, so ticking it again brings them back.
 
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-situations.png" width="460" alt="Notification setup (top): sound and text per situation">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize.png" width="460" alt="Notification setup (bottom): reminder minutes and the two collapsible libraries">
+
 ## Sounds
 
 **Three sections.** Every sound picker opens a two-level list: the source first, that source's sounds second.
@@ -117,7 +120,7 @@ text** saved for that situation. Each situation keeps at most **three** custom t
 `{分钟}` are insertable with one click, and a live preview line renders the template while you type.
 
 **Test vs preview.** The test button in card 1 always uses fixed copy and the default Windows sound; the
-Preview button in card 2 uses the situation's real text and sound (following the delivery mode). An empty
+Preview button in card 3 uses the situation's real text and sound (following the delivery mode). An empty
 `{内容}` falls back to that situation's built-in line.
 
 **Where they live.** The wording is stored in
@@ -131,17 +134,17 @@ this file by hand** — the client loads it once at start-up.
 
 | | |
 |---|---|
-| Verified on | DSH desktop **0.2.1-rc.2** (2026-10-18): version gate, plugin loading, projection delivery, host toast / sound / silence routes, `dsh://open` focus and a real Windows toast all pass ([evidence](docs/acceptance/2026-10-18-dsh-0.2.1-rc.2-compat.md)); earlier runs on 0.2.1-rc.1 and 0.2.0-rc.2 also passed |
-| Declared range | `>=0.2.0-rc.2 <0.3.0-0` — the whole 0.2 line, prereleases included; the loader checks it with `includePrerelease`, so 0.2.1-rc.2 passes |
+| Verified on | DSH desktop **0.2.1-rc.3**: plugin loading, projection delivery, host toast / sound / silence / text-template routes, plus the settings page's preview, test notification and cache clearing all pass ([evidence](docs/acceptance/2026-10-25-notification-customization.md)); earlier acceptance runs on 0.2.1-rc.2 / rc.1 / 0.2.0-rc.2 are kept in `docs/acceptance/` |
+| Declared range | `>=0.2.0-rc.2 <0.3.0-0` — the whole 0.2 line, prereleases included; the loader checks it with `includePrerelease`, so 0.2.1-rc.3 passes |
 | Platform | Windows desktop profile only; the web profile has no toast channel and is untested |
-| 0.2.1 seam check | The 0.2.1-rc.2 runtime image ships no `.d.ts`; every seam used here was checked against its compiled JS and still matches |
+| Seam check | The 0.2.1 runtime image ships no `.d.ts`; every seam used here was checked against its compiled JS and still matches |
 
 The profile loader reads the `peerDependencies` entries named `@deepseek-ai/dsh` or `@deepseek-ai/dsh-*`
 and checks them with `semver.satisfies(runtime, range, { includePrerelease: true })`. A mismatch makes it
 skip the plugin rather than load it. On another runtime, grant an exemption:
 
 ```powershell
-dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.1.1 --dsh-version <your-version> --accept-risk
+dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.2.0 --dsh-version <your-version> --accept-risk
 ```
 
 ## How it works

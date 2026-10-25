@@ -5,7 +5,7 @@
 给 **DSH 桌面端** 加 Windows 原生通知：会话跑完、出错、或停下来等你确认时弹一条系统通知，并播放**为这种情况挑好的音效**、
 显示**为这种情况写好的文字**；点通知把 DSH 窗口拉回前台。
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="通知设置">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="桌面通知与通知情况">
 
 ## 它能给你什么
 
@@ -76,6 +76,9 @@
 
 勾选情况后，下面的「通知自定义」会实时出现对应行；取消勾选只是隐藏，已配的音效和文本都保留，重新勾选回来还在。
 
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-situations.png" width="460" alt="通知自定义（上）：按情况选音效与文本">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize.png" width="460" alt="通知自定义（下）：催办分钟数与两个折叠库">
+
 ## 音效
 
 **三个分区。** 每个音效选择器都是两级：先选**来源**，再选该来源下的具体音效。
@@ -100,12 +103,12 @@
 **每个情况一套文字。** 真实通知的标题和正文来自该情况当前选中的文本：
 
 - **默认文本** —— 内置的 `{工作区} · {状态}` / `{内容}`，不需要配置。
-- **自定义文本** —— 在该情况行里选择，或在卡二的「自定义文本」里新建/编辑。每个情况最多保存 **3 套**。
+- **自定义文本** —— 在该情况行里选择，或在卡三的「自定义文本」里新建/编辑。每个情况最多保存 **3 套**。
 
 **编辑器。** 名称（最多 24 字）、标题（120 字）、正文（300 字）；占位符 `{工作区}` `{状态}` `{内容}` `{分钟}`
 可点击插入，编辑器里会实时渲染一行预览。长度上限与 Windows Toast 的截断一致。
 
-**测试与预览。** 卡一的「发送测试通知」永远是固定文案 + 系统默认音效；卡二的「预览效果」才用该情况真正的文本和音效
+**测试与预览。** 卡一的「发送测试通知」永远是固定文案 + 系统默认音效；卡三的「预览效果」才用该情况真正的文本和音效
 （跟随当前通知形式）。默认文本的 `{内容}` 为空时整条正文回退到该情况的内置提示句。
 
 **存在哪里。** 文本内容保存在 `%LOCALAPPDATA%\dsh-notify\templates\templates.json`（和自定义音效同一个 `dsh-notify` 目录），
@@ -116,17 +119,17 @@
 
 | | |
 |---|---|
-| 实测版本 | DSH 桌面端 **0.2.1-rc.2**（2026-10-18）：版本闸门、插件加载、投影送达、宿主 Toast/音效/静音路由、`dsh://open` 回前台以及一条真实 Windows Toast 全部通过（[证据](docs/acceptance/2026-10-18-dsh-0.2.1-rc.2-compat.md)）；此前 0.2.1-rc.1 与 0.2.0-rc.2 的验收也通过 |
-| 声明范围 | `>=0.2.0-rc.2 <0.3.0-0` —— 即整条 0.2 线，含预发布版；加载器按 `includePrerelease` 判定，0.2.1-rc.2 在范围内 |
+| 实测版本 | DSH 桌面端 **0.2.1-rc.3**：插件加载、会话投影、宿主 Toast / 音效 / 静音 / 文本模板路由，以及设置页里的预览、测试通知、缓存清理均实测通过（[证据](docs/acceptance/2026-10-25-notification-customization.md)）；更早的 0.2.1-rc.2 / rc.1 / 0.2.0-rc.2 验收记录见 `docs/acceptance/` |
+| 声明范围 | `>=0.2.0-rc.2 <0.3.0-0` —— 整条 0.2 线（含预发布）；加载器按 `includePrerelease` 判定，0.2.1-rc.3 在范围内 |
 | 平台 | 仅 Windows 桌面端 profile；web profile 没有 Toast 通道，未验证 |
-| 0.2.1 seam 核对 | 0.2.1-rc.2 运行时镜像不带 `.d.ts`；本插件用到的全部 seam 均按其编译 JS 复核通过 |
+| seam 核对 | 0.2.1 运行时镜像不带 `.d.ts`；本插件用到的全部 seam 均按其编译 JS 复核通过 |
 
 profile 加载器只看 `peerDependencies` 里名为 `@deepseek-ai/dsh` 或 `@deepseek-ai/dsh-*` 的条目，
 用 `semver.satisfies(runtime, range, { includePrerelease: true })` 判定；**不匹配会直接跳过该插件**（不加载）。
 运行时不在范围内时，可以显式豁免：
 
 ```powershell
-dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.1.1 --dsh-version <你的版本> --accept-risk
+dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.2.0 --dsh-version <你的版本> --accept-risk
 ```
 
 ## 工作原理

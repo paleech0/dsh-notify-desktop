@@ -64,7 +64,7 @@ describe('toast copy', () => {
 
   it('names the workspace from the session directory', () => {
     expect(workspaceName('D:\\projects\\notification plugin')).toBe('notification plugin')
-    expect(workspaceName('E:/dsh-plugins/dsh-notify-desktop/')).toBe('dsh-notify-desktop')
+    expect(workspaceName('C:/work/my-tool/')).toBe('my-tool')
     expect(workspaceName(undefined)).toBe('')
   })
 })

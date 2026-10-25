@@ -34,14 +34,14 @@
 | **有焦点** | **不弹**（按设计抑制） | — |
 | **无焦点**（可见但没被选中 / 最小化 / 隐藏） | 宿主 PowerShell Toast（AUMID `electron.app.DeepSeek Harness`） | 只能回前台 |
 | 无焦点但宿主路由不可达 | 渲染层 `new Notification()`（兜底） | 回前台 + 跳会话 |
-| 通知形式 = 仅提示音（2026-10-25 新增） | **不弹任何东西**，`POST /dsh-notify/sound` 让宿主单独播放音效 | 无 |
+| 通知形式 = 仅提示音 | **不弹任何东西**，`POST /dsh-notify/sound` 让宿主单独播放音效 | 无 |
 
 **判据是 `!document.hasFocus()`，不是 `document.hidden`**：渲染层通知只在窗口有焦点时可靠，而那时按设计不弹 ——
 所以按「可见/隐藏」分流等于让最常见的场景落到一条不可靠的通道上（实测：最小化、可见但失焦，渲染层都是静默失效）。
 
 宿主 Toast 的三个硬约束（实测，别"优化"掉）：PowerShell **绝对路径**、**不要 `detached`**、**stdio 保留管道并 drain**（`'ignore'` 会让 Toast 静默失效且退出码仍为 0）。
 
-## 通知形式、按情况音效与弹窗文本（2026-10-25 重构）
+## 通知形式、按情况音效与弹窗文本
 
 **情况（scenario）是唯一的分组键**，共 9 个（`src/scenarios.ts` 的 `SCENARIO_IDS`，顺序即 UI 顺序）：
 `completed / error / aborted / blocked / max-tokens / approval / question / plan-review / reminder`。
@@ -54,7 +54,7 @@
 - 迁移（都在 `readSettings` 里、不换存储键）：`soundEnabled=false` → `mode:'notify'`；
   旧 4 组 `sounds.finished/error/attention/reminder` 按组下发到 9 个情况；旧全局 `titleTemplate/bodyTemplate`
   若有自定义值 → 放进 `legacyText`，客户端启动后写进各已启用情况的磁盘库并清掉该字段（失败则下次启动重试）。
-- UI 三张卡（2026-10-25 调整顺序）：**① 桌面通知**（总开关 → 发送测试通知 → 通知形式三选一）→
+- UI 三张卡：**① 桌面通知**（总开关 → 发送测试通知 → 通知形式三选一）→
   **② 选择接收以下哪种情况的通知**（"会话结束"5 个开关 / "等待你确认"3 个开关，每行带一句例子，
   **不带「例：」前缀**）→ **③ 通知自定义**（按已勾选情况的行：音效选择器 + 文本选择器 + 预览效果；
   下方两个可折叠库：自定义音效（含转换缓存）、自定义文本）。
@@ -71,7 +71,7 @@
   按情况分组、每组 ≤3；写入 = 临时文件 + rename；损坏按空库处理。宿主路由 `GET/POST /dsh-notify/text-templates`
   负责读写与校验（`src/text-store.ts` 纯逻辑可测）。客户端**启动时加载一次**并缓存（`src/client/texts.ts`），
   编辑后由 store 回填；设置里只存模板 id。
-- 排版（2026-10-25）：**字体跟随主题，不写死字体族** —— `.dsh_notify_section` 用 `var(--dsw-font-family, inherit)`，
+- 排版：**字体跟随主题，不写死字体族** —— `.dsh_notify_section` 用 `var(--dsw-font-family, inherit)`，
   模板编辑器/占位符 chips/字数计数用 `var(--ds-font-family-code, …)` 半等宽；数字统一 `font-variant-numeric: tabular-nums`，
   说明文字透明度 0.72–0.78、行高 1.55。改样式时保持这两条，否则用户改了 DSH 正文字体插件会不跟、占位符对不齐。
 
@@ -83,7 +83,7 @@
 - 非 wav 自定义音效：宿主先用 `ffmpeg` 转成 wav（缓存 `%LOCALAPPDATA%\dsh-notify\sounds\<源路径 sha1 前 16 位>.wav`）再交给 SoundPlayer。
   ffmpeg 从 **PATH** 找（`ffmpeg.exe`），**wav 与内置音效库不依赖它**；找不到 → 静音，诊断接口 `media.ffmpeg` 会显示 `null`。
 - 文件类音效**播放封顶 8 秒**（宿主 `setTimeout` + kill 子进程）；关总开关、切到「仅通知」、或窗口重获焦点，都会立刻掐（`POST /dsh-notify/silence`）。
-- **仅发声路由**（`POST /dsh-notify/sound`，2026-10-25 新增）：id 解析与 Toast 完全同源（目录/白名单），播放复用同一套
+- **仅发声路由**（`POST /dsh-notify/sound`）：id 解析与 Toast 完全同源（目录/白名单），播放复用同一套
   SoundPlayer 子进程管线（8 秒封顶 + soundPlayers + silence）。`system:*` 事件音**没有弹窗可挂 `<audio>`**，宿主用
   `reg.exe`（静态 argv，一次查整棵 `HKCU\AppEvents\Schemes\Apps\.Default`）解析 `.Current` 的 wav——
   本机实测 5 个事件全部解析成功且与 IM=SMS 重合（spike S3）；解析失败 → 静音 + debug 上报，下次重查。

@@ -4,7 +4,7 @@ All notable changes to this plugin are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.2.0] - 2026-10-25
 
 ### Changed
 
@@ -41,6 +41,13 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 - Host route `GET/POST /dsh-notify/text-templates`: reads every saved text and saves or deletes one,
   with per-situation validation (at most three, bounded name/title/body, atomic file replace).
 - `GET /dsh-notify/debug` now also reports text-template save/delete lines in the client report ring.
+
+### Verified
+
+- On DSH desktop **0.2.1-rc.3**: the plugin loads, the projection is delivered, the host toast / sound /
+  silence / text-template routes answer, and the settings page's preview, test notification and cache
+  clearing were exercised for real. The text-template route passed a save → disk read → fresh GET →
+  delete round-trip with Chinese content and left the store byte-identical afterwards.
 
 ## [0.1.1] - 2026-10-18
 

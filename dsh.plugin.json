@@ -1,7 +1,7 @@
 {
   "name": "dsh-notify-desktop",
   "description": "Windows native notifications and click-to-focus for DSH desktop sessions",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "entry": { "name": "dsh-notify-desktop", "inject": [] },
   "client": { "platform": "web" }
 }
