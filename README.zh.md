@@ -63,7 +63,7 @@
 | 会话结束 | 正常完成 / 出错 / 被中止 / 被阻塞 / 达到 Token 上限（每行附一句例子） |
 | 等待你确认 | 等待审批 / 等待回答 / 等待计划评审（每行附一句例子） |
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-situations.png" width="460" alt="通知情况（下半）：等待你确认的三种情形">
+<img width="409" height="427" alt="屏幕截图 2026-10-25 181130" src="https://github.com/user-attachments/assets/2558b1eb-7b2b-497c-bb8f-a3144ee1718f" />
 
 **卡三「通知自定义」—— 每个情况的声音和文字：**
 
