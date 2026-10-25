@@ -144,10 +144,23 @@ export function TextManager(props: TextManagerProps): JSX.Element {
               <span className="dsh_notify_textGroupCount">
                 {String(templates.length) + '/' + String(TEXT_LIMIT_PER_SCENARIO)}
               </span>
+              {editing === null ? (
+                <button
+                  type="button"
+                  className="dsh_notify_button dsh_notify_textGroupAdd"
+                  disabled={templates.length >= TEXT_LIMIT_PER_SCENARIO}
+                  {...(templates.length >= TEXT_LIMIT_PER_SCENARIO
+                    ? { title: props.t('settings.textLibrary.limit') }
+                    : {})}
+                  onClick={() => {
+                    startNew(scenario)
+                  }}
+                >
+                  {props.t('settings.textLibrary.add')}
+                </button>
+              ) : null}
             </div>
-            {templates.length === 0 ? (
-              <div className="dsh_notify_rowDesc">{props.t('settings.textLibrary.empty')}</div>
-            ) : (
+            {templates.length === 0 ? null : (
               <ul className="dsh_notify_textList">
                 {templates.map(template => (
                   <li className="dsh_notify_textItem" key={template.id}>
@@ -199,21 +212,7 @@ export function TextManager(props: TextManagerProps): JSX.Element {
                 </button>
               </div>
             ) : null}
-            {editing === null ? (
-              <button
-                type="button"
-                className="dsh_notify_button"
-                disabled={templates.length >= TEXT_LIMIT_PER_SCENARIO}
-                {...(templates.length >= TEXT_LIMIT_PER_SCENARIO
-                  ? { title: props.t('settings.textLibrary.limit') }
-                  : {})}
-                onClick={() => {
-                  startNew(scenario)
-                }}
-              >
-                {props.t('settings.textLibrary.add')}
-              </button>
-            ) : (
+            {editing === null ? null : (
               <TextEditor
                 key={editing.id ?? 'new'}
                 state={editing}

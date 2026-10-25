@@ -26,6 +26,8 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   block. Deleting a custom sound or text asks for confirmation inline with a red destructive button.
 - The four sound groups' preview buttons and fixed preview copy are gone, replaced by the per-situation
   preview.
+- The custom-text manager is one compact header row per situation (name, count and the New-text
+  button on one line); the empty-state line is gone and saved rows are shorter.
 
 ### Added
 

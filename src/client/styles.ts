@@ -322,27 +322,38 @@ export const cssText = `
 .dsh_notify_textPanel { width: 230px; }
 
 /* The saved-text manager and its inline editor. */
-.dsh_notify_textManager { display: flex; flex-direction: column; gap: 4px; }
+.dsh_notify_textManager { display: flex; flex-direction: column; gap: 2px; }
+/* One situation: a single compact header row (name + count + New text), then
+   its saved rows and, while open, the inline editor. */
 .dsh_notify_textGroup {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 0;
+  gap: 4px;
+  padding: 6px 0;
   border-top: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.12));
 }
 .dsh_notify_textGroup:first-child { border-top: 0; padding-top: 0; }
-.dsh_notify_textGroupHeader { display: flex; align-items: baseline; gap: 8px; }
-.dsh_notify_textGroupName { font-size: 13px; font-weight: 600; }
-.dsh_notify_textGroupCount { font-size: 12px; opacity: 0.6; font-variant-numeric: tabular-nums; }
+.dsh_notify_textGroupHeader { display: flex; align-items: center; gap: 8px; min-height: 24px; }
+.dsh_notify_textGroupName { font-size: 13px; font-weight: 600; line-height: 20px; }
+.dsh_notify_textGroupCount { font-size: 11px; opacity: 0.55; font-variant-numeric: tabular-nums; }
+.dsh_notify_card .dsh_notify_textGroupAdd {
+  margin-left: auto;
+  height: 24px;
+  padding: 0 10px;
+  font-size: 11px;
+  line-height: 22px;
+  align-self: center;
+}
 .dsh_notify_textList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .dsh_notify_card .dsh_notify_textItem {
   display: grid;
   grid-template-columns: 110px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
-  padding: 5px 8px;
+  padding: 2px 8px;
   border-radius: 7px;
   font-size: 12px;
+  line-height: 20px;
   border: 1px solid transparent;
 }
 .dsh_notify_card .dsh_notify_textItem:hover {
