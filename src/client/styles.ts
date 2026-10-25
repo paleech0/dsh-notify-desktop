@@ -8,7 +8,13 @@ export const STYLE_ID = 'dsh-notify-desktop-style'
 
 /** The section's stylesheet text. */
 export const cssText = `
-.dsh_notify_section { display: flex; flex-direction: column; gap: 16px; }
+.dsh_notify_section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* Option A: follow the DSH theme font (the user's own text-font setting). */
+  font-family: var(--dsw-font-family, inherit);
+}
 .dsh_notify_card {
   border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.24));
   border-radius: 10px;
@@ -18,7 +24,7 @@ export const cssText = `
   gap: 8px;
 }
 .dsh_notify_cardTitle { font-weight: 600; font-size: 13px; }
-.dsh_notify_cardDesc { font-size: 12px; opacity: 0.72; line-height: 1.5; }
+.dsh_notify_cardDesc { font-size: 12px; opacity: 0.78; line-height: 1.55; }
 .dsh_notify_row { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; }
 .dsh_notify_row input[type='checkbox'] { margin-top: 2px; }
 .dsh_notify_rowText { display: flex; flex-direction: column; gap: 2px; }
@@ -26,9 +32,9 @@ export const cssText = `
 .dsh_notify_rowLabel { cursor: pointer; }
 .dsh_notify_error { color: #e5484d; font-size: 12px; line-height: 1.5; }
 .dsh_notify_note { color: #3dd68c; font-size: 12px; line-height: 1.5; }
-.dsh_notify_cacheText { flex: 1 1 auto; font-size: 12px; opacity: 0.75; }
-.dsh_notify_rowDesc { font-size: 12px; opacity: 0.66; line-height: 1.5; }
-.dsh_notify_rowPrefix { font-size: 11px; opacity: 0.55; }
+.dsh_notify_cacheText { flex: 1 1 auto; font-size: 12px; opacity: 0.8; font-variant-numeric: tabular-nums; }
+.dsh_notify_rowDesc { font-size: 12px; opacity: 0.74; line-height: 1.55; }
+.dsh_notify_rowPrefix { font-size: 11px; opacity: 0.62; }
 .dsh_notify_button {
   align-self: flex-start;
   padding: 6px 12px;
@@ -38,6 +44,8 @@ export const cssText = `
   color: inherit;
   cursor: pointer;
   font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
 }
 .dsh_notify_button:hover { background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12)); }
 
@@ -59,6 +67,7 @@ export const cssText = `
   border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
   background: transparent;
   color: inherit;
+  font-variant-numeric: tabular-nums;
 }
 
 /*
@@ -278,7 +287,7 @@ export const cssText = `
 .dsh_notify_card .dsh_notify_pickerHeaderStatic { cursor: default; }
 .dsh_notify_card .dsh_notify_pickerHeaderStatic:hover { background: transparent; }
 .dsh_notify_pickerHeaderLabel { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dsh_notify_pickerCount { opacity: 0.55; font-variant-numeric: tabular-nums; }
+.dsh_notify_pickerCount { opacity: 0.62; font-variant-numeric: tabular-nums; }
 .dsh_notify_pickerCaretSmall {
   flex: 0 0 auto;
   width: 6px;
@@ -318,7 +327,7 @@ export const cssText = `
   color: var(--dsw-alias-brand-primary, #6b8afd);
   font-weight: 600;
 }
-.dsh_notify_pickerEmpty { padding: 2px 8px 8px 20px; font-size: 12px; opacity: 0.6; }
+.dsh_notify_pickerEmpty { padding: 2px 8px 8px 20px; font-size: 12px; opacity: 0.68; }
 .dsh_notify_textPanel { width: 230px; }
 
 /* The saved-text manager and its inline editor. */
@@ -335,7 +344,7 @@ export const cssText = `
 .dsh_notify_textGroup:first-child { border-top: 0; padding-top: 0; }
 .dsh_notify_textGroupHeader { display: flex; align-items: center; gap: 8px; min-height: 24px; }
 .dsh_notify_textGroupName { font-size: 13px; font-weight: 600; line-height: 20px; }
-.dsh_notify_textGroupCount { font-size: 11px; opacity: 0.55; font-variant-numeric: tabular-nums; }
+.dsh_notify_textGroupCount { font-size: 11px; opacity: 0.62; font-variant-numeric: tabular-nums; }
 .dsh_notify_card .dsh_notify_textGroupAdd {
   margin-left: auto;
   height: 24px;
@@ -361,7 +370,7 @@ export const cssText = `
   border-color: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.2));
 }
 .dsh_notify_textItemName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.dsh_notify_textItemBody { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.7; }
+.dsh_notify_textItemBody { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.78; }
 .dsh_notify_editor {
   display: flex;
   flex-direction: column;
@@ -372,8 +381,13 @@ export const cssText = `
   background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.06));
 }
 .dsh_notify_editorRow { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
-.dsh_notify_editorLabel { font-size: 12px; opacity: 0.75; }
-.dsh_notify_editorCount { font-size: 11px; opacity: 0.5; font-variant-numeric: tabular-nums; }
+.dsh_notify_editorLabel { font-size: 12px; opacity: 0.82; }
+.dsh_notify_editorCount {
+  font-family: var(--ds-font-family-code, "Cascadia Mono", Consolas, "Noto Sans SC", monospace);
+  font-size: 11px;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
 .dsh_notify_textInput {
   flex: 1 1 auto;
   min-width: 0;
@@ -385,6 +399,12 @@ export const cssText = `
   border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
   background: transparent;
   color: inherit;
+}
+/* The template fields are half-mono: placeholders line up and braces read clearly. */
+.dsh_notify_card .dsh_notify_mono,
+.dsh_notify_textInput.dsh_notify_mono {
+  font-family: var(--ds-font-family-code, "Cascadia Mono", Consolas, "Noto Sans SC", monospace);
+  font-variant-numeric: tabular-nums;
 }
 .dsh_notify_textArea {
   min-width: 0;
@@ -400,6 +420,7 @@ export const cssText = `
 .dsh_notify_editorPlaceholders { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .dsh_notify_chip {
   padding: 2px 8px;
+  font-family: var(--ds-font-family-code, "Cascadia Mono", Consolas, "Noto Sans SC", monospace);
   font-size: 11px;
   border-radius: 999px;
   border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));

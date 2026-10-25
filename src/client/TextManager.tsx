@@ -260,15 +260,18 @@ function Field(props: {
   value: string
   limit: number
   multiline?: boolean
+  /** Render the value in the half-mono template font (placeholders line up). */
+  mono?: boolean
   onChange: (value: string) => void
 }): JSX.Element {
   const count = String(props.value.length) + '/' + String(props.limit)
+  const mono = props.mono === true ? ' dsh_notify_mono' : ''
   return (
     <label className="dsh_notify_editorRow">
       <span className="dsh_notify_editorLabel">{props.label}</span>
       {props.multiline === true ? (
         <textarea
-          className="dsh_notify_textArea"
+          className={'dsh_notify_textArea' + mono}
           value={props.value}
           maxLength={props.limit}
           rows={3}
@@ -279,7 +282,7 @@ function Field(props: {
       ) : (
         <input
           type="text"
-          className="dsh_notify_textInput"
+          className={'dsh_notify_textInput' + mono}
           value={props.value}
           maxLength={props.limit}
           onChange={event => {
@@ -312,6 +315,7 @@ function TextEditor(props: TextEditorProps): JSX.Element {
         label={props.t('settings.textEditor.titleField')}
         value={props.state.title}
         limit={TEXT_TITLE_LIMIT}
+        mono
         onChange={value => {
           props.onChange({ title: value })
         }}
@@ -321,6 +325,7 @@ function TextEditor(props: TextEditorProps): JSX.Element {
         value={props.state.body}
         limit={TEXT_BODY_LIMIT}
         multiline
+        mono
         onChange={value => {
           props.onChange({ body: value })
         }}

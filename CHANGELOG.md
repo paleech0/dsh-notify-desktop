@@ -28,6 +28,9 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   preview.
 - The custom-text manager is one compact header row per situation (name, count and the New-text
   button on one line); the empty-state line is gone and saved rows are shorter.
+- Typography: the section follows the DSH theme font (`--dsw-font-family`); the template editor,
+  placeholder chips and character counts use the code font (`--ds-font-family-code`) so placeholders line
+  up; descriptions got a little more contrast and all numerals are tabular.
 
 ### Added
 

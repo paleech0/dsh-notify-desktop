@@ -70,6 +70,9 @@
   按情况分组、每组 ≤3；写入 = 临时文件 + rename；损坏按空库处理。宿主路由 `GET/POST /dsh-notify/text-templates`
   负责读写与校验（`src/text-store.ts` 纯逻辑可测）。客户端**启动时加载一次**并缓存（`src/client/texts.ts`），
   编辑后由 store 回填；设置里只存模板 id。
+- 排版（2026-10-25）：**字体跟随主题，不写死字体族** —— `.dsh_notify_section` 用 `var(--dsw-font-family, inherit)`，
+  模板编辑器/占位符 chips/字数计数用 `var(--ds-font-family-code, …)` 半等宽；数字统一 `font-variant-numeric: tabular-nums`，
+  说明文字透明度 0.72–0.78、行高 1.55。改样式时保持这两条，否则用户改了 DSH 正文字体插件会不跟、占位符对不齐。
 
 ## 音效（2026-10-10 实测，别再往媒体栈上撞）
 
