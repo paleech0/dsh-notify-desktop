@@ -61,6 +61,8 @@ this machine; every change applies immediately.
 | Enable notifications | Master switch; nothing toasts or sounds while it is off. Every delivery control greys out (the chosen values stay): the mode, each situation's sound and text, the previews, the reminder minutes and the situation switches below. Only "Custom sounds" and "Custom texts" stay editable |
 | Send a test notification | Right below the master switch; always the default Windows sound plus a fixed toast, unaffected by the mode and every setting below — use it to check that the configuration works |
 | Delivery mode | Toast + sound (default) / Toast only (silent) / Sound only (no toast) |
+<img width="415" height="534" alt="屏幕截图 2026-10-25 180124" src="https://github.com/user-attachments/assets/f259971d-e2bb-4361-bac9-d720065e226e" />
+
 
 **Card 2 — Notify me in which of these situations:**
 
@@ -69,7 +71,8 @@ this machine; every change applies immediately.
 | A session ends | Completed / Error / Aborted / Blocked / Token limit reached (each row carries an example) |
 | Waiting on you | Waiting for approval / an answer / a plan review (each row carries an example) |
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-situations.png" width="460" alt="Situation list (bottom half): the three waiting-on-you cases">
+<img width="409" height="427" alt="屏幕截图 2026-10-25 181130" src="https://github.com/user-attachments/assets/d636dc8b-e19f-4f4f-a43c-d0280612594e" />
+
 
 **Card 3 — Notification setup: the sound and text of each situation:**
 
