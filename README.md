@@ -8,6 +8,16 @@ clicking it brings the DSH window back to the front.
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="Desktop notifications and the situation list (top half)">
 
+## What's new in 0.2.1
+
+- **Toast identity fallback.** Newer desktop builds register notifications under `com.deepseek.dsh`, older
+  ones under `electron.app.DeepSeek Harness`. Before raising a toast the plugin probes which identity
+  Windows knows (new first, legacy as fallback), so a desktop-side identity change no longer makes popups
+  disappear silently; the identity used is recorded in the diagnostics route.
+- **Compatibility.** Verified on DSH desktop **0.2.1-rc.5** (plugin loading, projection delivery, host
+  toast with the identity fallback, diagnostics and text-template routes); the declared range is unchanged.
+  Existing settings and saved texts are preserved, and the settings UI is unchanged.
+
 ## What you get
 
 - **Told when it matters** — turn ends (completed, error, aborted, blocked, max-tokens), approval
@@ -138,7 +148,7 @@ this file by hand** — the client loads it once at start-up.
 
 | | |
 |---|---|
-| Verified on | DSH desktop **0.2.1-rc.3**: plugin loading, projection delivery, host toast / sound / silence / text-template routes, plus the settings page's preview, test notification and cache clearing all pass ([evidence](docs/acceptance/2026-10-25-notification-customization.md)); earlier acceptance runs on 0.2.1-rc.2 / rc.1 / 0.2.0-rc.2 are kept in `docs/acceptance/` |
+| Verified on | DSH desktop **0.2.1-rc.5**: plugin loading, projection delivery, host toast (including the 0.2.1 identity fallback), diagnostics and text-template routes pass ([evidence](docs/acceptance/2026-10-31-toast-identity.md)); earlier runs — 0.2.1-rc.3 (settings page, sound, custom texts) and rc.2 / rc.1 / 0.2.0-rc.2 — are kept in `docs/acceptance/` |
 | Declared range | `>=0.2.0-rc.2 <0.3.0-0` (the loader's semver gate) — this lets the loader **accept** the whole 0.2 line from 0.2.0-rc.2 on, prereleases included; **only the versions verified above are tested — anything else inside the range is allowed but not guaranteed**. 0.2.0-rc.1 and older, and 0.3.x, are outside it |
 | Platform | Windows desktop profile only; the web profile has no toast channel and is untested |
 | Seam check | The 0.2.1 runtime image ships no `.d.ts`; every seam used here was checked against its compiled JS and still matches |

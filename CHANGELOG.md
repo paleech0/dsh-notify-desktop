@@ -14,6 +14,12 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
   diagnostics ring. Toasts keep working when the desktop app changes its AppUserModelID, and
   `DSH_NOTIFY_AUMID=id1;id2` overrides the candidate list for diagnosis.
 
+### Verified
+
+- DSH desktop 0.2.1-rc.5 on Windows 11 25H2 (build 26200): the plugin loads, the projection reports
+  `notifyState=present`, the host toast is raised under `com.deepseek.dsh`, and the diagnostics and
+  text-template routes answer. See [acceptance](docs/acceptance/2026-10-31-toast-identity.md).
+
 ## [0.2.0] - 2026-10-25
 
 ### Changed
