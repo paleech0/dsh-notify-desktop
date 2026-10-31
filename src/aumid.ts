@@ -1,19 +1,21 @@
 /**
  * Which identity the host uses when it raises a Windows toast.
  *
- * Windows attributes a toast to an AppUserModelID. The desktop app used to be
- * registered under Electron's default id (`electron.app.DeepSeek Harness`);
- * newer builds register the manifest's `dshDesktopAppId`
- * (`com.deepseek.dsh`). The plugin cannot know which one a given install has,
- * so the toast child probes the candidates and uses the first registered id,
- * keeping the legacy one as the fallback. That keeps toasts working across the
- * identity change without a per-machine setting.
+ * Windows attributes a toast to an AppUserModelID, and shows the application's
+ * display name and icon only for an identity it can resolve to the app (a
+ * registered shortcut). Upgraded installs resolve the historical id
+ * (`electron.app.DeepSeek Harness`); installs that only registered the
+ * manifest's `dshDesktopAppId` (`com.deepseek.dsh`) resolve the newer one.
+ * The toast child probes the candidates, prefers the historical id because it
+ * carries the proper display name, and falls back to the manifest id, so
+ * toasts keep working across the identity change without a per-machine
+ * setting.
  */
 
-/** Candidate identities, newest first. */
+/** Candidate identities: the named legacy id first, the manifest id fallback. */
 export const AUMID_CANDIDATES: readonly string[] = Object.freeze([
-  'com.deepseek.dsh',
   'electron.app.DeepSeek Harness',
+  'com.deepseek.dsh',
 ])
 
 /**
@@ -26,7 +28,7 @@ export const AUMID_CANDIDATES: readonly string[] = Object.freeze([
 export const AUMID_OVERRIDE_ENV = 'DSH_NOTIFY_AUMID'
 
 /**
- * Resolve the candidate identities to try, newest first.
+ * Resolve the candidate identities to try, in candidate order.
  * @param override - the raw override environment value, when set.
  * @returns a non-empty list: the override ids in order, else the built-in ones.
  */

@@ -40,7 +40,7 @@
 所以按「可见/隐藏」分流等于让最常见的场景落到一条不可靠的通道上（实测：最小化、可见但失焦，渲染层都是静默失效）。
 
 宿主 Toast 的三个硬约束（实测，别"优化"掉）：PowerShell **绝对路径**、**不要 `detached`**、**stdio 保留管道并 drain**（`'ignore'` 会让 Toast 静默失效且退出码仍为 0）。
-Toast 身份**不许写死**：候选在 `src/aumid.ts`（新 `com.deepseek.dsh` 优先，旧 `electron.app.DeepSeek Harness` 兜底），
+Toast 身份**不许写死**：候选在 `src/aumid.ts`（旧 `electron.app.DeepSeek Harness` 优先——Windows 能解析显示名/图标，新 `com.deepseek.dsh` 兜底），
 子进程先探测 `CreateToastNotifier(...).Setting` 是否非空再 Show，选中身份写进 debug ring；`DSH_NOTIFY_AUMID=id1;id2` 可覆盖。
 
 ## 通知形式、按情况音效与弹窗文本

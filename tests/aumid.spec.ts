@@ -6,10 +6,10 @@ import {
 } from '../src/aumid.ts'
 
 describe('toast identity candidates', () => {
-  it('prefers the new desktop app identity and keeps the legacy one as fallback', () => {
+  it('prefers the identity Windows can name and keeps the manifest id as fallback', () => {
     expect([...AUMID_CANDIDATES]).toEqual([
-      'com.deepseek.dsh',
       'electron.app.DeepSeek Harness',
+      'com.deepseek.dsh',
     ])
   })
 

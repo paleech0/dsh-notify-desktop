@@ -8,11 +8,12 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Fixed
 
-- Toast identity is no longer the hard-coded Electron default (`electron.app.DeepSeek Harness`).
-  The host now probes the candidate AppUserModelIDs — `com.deepseek.dsh` for newer desktop builds,
-  then the legacy id — uses the first identity Windows has registered, and records the choice in the
-  diagnostics ring. Toasts keep working when the desktop app changes its AppUserModelID, and
-  `DSH_NOTIFY_AUMID=id1;id2` overrides the candidate list for diagnosis.
+- Toast identity is no longer the hard-coded Electron default. The host probes the candidate
+  AppUserModelIDs — the named legacy id `electron.app.DeepSeek Harness` first (Windows resolves its
+  display name and icon), then the manifest id `com.deepseek.dsh` — and uses the first identity Windows
+  has registered; the choice is recorded in the diagnostics ring. Toasts keep working when the desktop
+  app changes its AppUserModelID, and `DSH_NOTIFY_AUMID=id1;id2` overrides the candidate list for
+  diagnosis.
 
 ### Verified
 

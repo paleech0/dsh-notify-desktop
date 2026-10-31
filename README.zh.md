@@ -10,7 +10,8 @@
 ## 0.2.1 更新
 
 - **Toast 身份自适应**：桌面端新版用 `com.deepseek.dsh` 登记通知、旧版用 `electron.app.DeepSeek Harness`。
-  插件现在会在弹通知前探测系统认得的身份（新号优先、旧号兜底），桌面端换过通知身份后弹窗不会再静默失效；
+  插件现在会在弹通知前探测系统认得的身份（旧号优先——Windows 能为它显示应用名和图标；旧号不存在时用新号），
+  桌面端换过通知身份后弹窗不会再静默失效；
   本次使用的身份会记进诊断接口。
 - **兼容性**：在 DSH 桌面端 **0.2.1-rc.5** 实测通过（插件加载、会话投影、宿主 Toast 与身份自适应、诊断与文本模板路由）；
   声明范围不变。旧版设置和已保存的自定义文本原样保留，设置界面没有改动。
@@ -168,7 +169,8 @@ dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.2.1 --dsh-ve
 
 **Toast 身份自适应。** 桌面端可能用两个 AppUserModelID 之一登记通知：新版是 `com.deepseek.dsh`，
 旧版是 `electron.app.DeepSeek Harness`。宿主不写死：弹 Toast 前先在子进程里探测候选
-（`CreateToastNotifier(...).Setting` 非空即视为已登记），新号优先、旧号兜底，选中的身份会记进诊断接口。
+（`CreateToastNotifier(...).Setting` 非空即视为已登记），优先使用能显示应用名和图标的旧号，旧号不存在时用新号；
+选中的身份会记进诊断接口。
 需要手动指定时，启动桌面端前设 `DSH_NOTIFY_AUMID=id1;id2`（分号分隔，按顺序尝试）。
 
 ## 排查

@@ -12,7 +12,8 @@ clicking it brings the DSH window back to the front.
 
 - **Toast identity fallback.** Newer desktop builds register notifications under `com.deepseek.dsh`, older
   ones under `electron.app.DeepSeek Harness`. Before raising a toast the plugin probes which identity
-  Windows knows (new first, legacy as fallback), so a desktop-side identity change no longer makes popups
+  Windows knows (the named legacy id first, the manifest id as fallback), so a desktop-side identity change
+no longer makes popups
   disappear silently; the identity used is recorded in the diagnostics route.
 - **Compatibility.** Verified on DSH desktop **0.2.1-rc.5** (plugin loading, projection delivery, host
   toast with the identity fallback, diagnostics and text-template routes); the declared range is unchanged.
@@ -192,8 +193,9 @@ a bounded queue. A cross-source key keeps the two copies from double-toasting.
 **Toast identity fallback.** The desktop app may be registered for notifications under either of two
 AppUserModelIDs: newer builds use `com.deepseek.dsh`, older ones Electron's default
 `electron.app.DeepSeek Harness`. Nothing is hard-coded: before raising a toast the host child probes the
-candidates (`CreateToastNotifier(...).Setting` non-null means the identity is registered), uses the new
-one first and falls back to the legacy id; the chosen identity is logged in the diagnostics route. To
+candidates (`CreateToastNotifier(...).Setting` non-null means the identity is registered), prefers the
+legacy id because Windows resolves its display name and icon, and falls back to the manifest id; the
+chosen identity is logged in the diagnostics route. To
 force a list, set `DSH_NOTIFY_AUMID=id1;id2` before starting the desktop app (semicolon-separated,
 tried in order).
 
