@@ -4,6 +4,16 @@ All notable changes to this plugin are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-10-31
+
+### Fixed
+
+- Toast identity is no longer the hard-coded Electron default (`electron.app.DeepSeek Harness`).
+  The host now probes the candidate AppUserModelIDs — `com.deepseek.dsh` for newer desktop builds,
+  then the legacy id — uses the first identity Windows has registered, and records the choice in the
+  diagnostics ring. Toasts keep working when the desktop app changes its AppUserModelID, and
+  `DSH_NOTIFY_AUMID=id1;id2` overrides the candidate list for diagnosis.
+
 ## [0.2.0] - 2026-10-25
 
 ### Changed

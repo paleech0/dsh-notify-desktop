@@ -148,7 +148,7 @@ identical). The loader checks it with `semver.satisfies(runtime, range, { includ
 mismatch makes it skip the plugin rather than load it. On another runtime, grant an exemption:
 
 ```powershell
-dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.2.0 --dsh-version <your-version> --accept-risk
+dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.2.1 --dsh-version <your-version> --accept-risk
 ```
 
 ## How it works
@@ -179,6 +179,14 @@ a bounded queue. A cross-source key keeps the two copies from double-toasting.
 | `POST /dsh-notify/pick-file`, `GET /dsh-notify/foreground` | Windows file picker; OS-level focus answer |
 | `GET /dsh-notify/questions` | Poll the host-side question queue |
 
+**Toast identity fallback.** The desktop app may be registered for notifications under either of two
+AppUserModelIDs: newer builds use `com.deepseek.dsh`, older ones Electron's default
+`electron.app.DeepSeek Harness`. Nothing is hard-coded: before raising a toast the host child probes the
+candidates (`CreateToastNotifier(...).Setting` non-null means the identity is registered), uses the new
+one first and falls back to the legacy id; the chosen identity is logged in the diagnostics route. To
+force a list, set `DSH_NOTIFY_AUMID=id1;id2` before starting the desktop app (semicolon-separated,
+tried in order).
+
 ## Troubleshooting
 
 Windows toasts never reach the Action Center, so the diagnostics route is the only evidence channel.
@@ -189,7 +197,8 @@ Invoke-WebRequest http://127.0.0.1:<desktop-port>/dsh-notify/debug
 ```
 
 It returns the projection registration state, the last 40 client reports (every decision, channel choice
-and platform result), and the sound plumbing (`media.ffmpeg`, `media.soundPlayers`).
+and platform result), and the sound plumbing (`media.ffmpeg`, `media.soundPlayers`). Every host toast also
+logs one `host-toast aumid=… candidates=…` line, which shows the identity it actually used.
 
 ## Development
 

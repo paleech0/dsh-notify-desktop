@@ -6,7 +6,7 @@
 
 1. **不改 harness**。本插件只用公开 seam：session projection、session list、settings slot、locale、webServer route。
    不修改 `<DSH desktop install>` 下任何文件，不往官方转发事件表里加事件，不给外壳 `process.send` 发自定义 type（白名单外 = 外壳 SIGTERM 打死宿主）。
-2. **peer 依赖精确对齐运行时**。运行时 = `<DSH desktop install>`（**0.2.1-rc.3**；devDependencies 仍锁 0.2.0-rc.2 仅供构建/类型检查，且 0.2.1 运行时镜像不带 `.d.ts`）。装/升任何 `@deepseek-ai/*` 前
+2. **peer 依赖精确对齐运行时**。运行时 = `<DSH desktop install>`（**0.2.1-rc.5**；devDependencies 仍锁 0.2.0-rc.2 仅供构建/类型检查，且 0.2.1 运行时镜像不带 `.d.ts`）。装/升任何 `@deepseek-ai/*` 前
    用 `"<DSH desktop install>\resources\runtime\cli\bin\dsh.cmd" --version` 核对；对不上就停手问人。
 3. **`lib/` 必须随源码提交**（profile 以链接方式装配，不发 npm 包）。
 4. **`pnpm run check` 必须全绿**（typecheck + vitest + build）才能提交。
@@ -32,7 +32,7 @@
 | 窗口状态 | 通道 | 点击 |
 |---|---|---|
 | **有焦点** | **不弹**（按设计抑制） | — |
-| **无焦点**（可见但没被选中 / 最小化 / 隐藏） | 宿主 PowerShell Toast（AUMID `electron.app.DeepSeek Harness`） | 只能回前台 |
+| **无焦点**（可见但没被选中 / 最小化 / 隐藏） | 宿主 PowerShell Toast（身份自适应，见 `src/aumid.ts`） | 只能回前台 |
 | 无焦点但宿主路由不可达 | 渲染层 `new Notification()`（兜底） | 回前台 + 跳会话 |
 | 通知形式 = 仅提示音 | **不弹任何东西**，`POST /dsh-notify/sound` 让宿主单独播放音效 | 无 |
 
@@ -40,6 +40,8 @@
 所以按「可见/隐藏」分流等于让最常见的场景落到一条不可靠的通道上（实测：最小化、可见但失焦，渲染层都是静默失效）。
 
 宿主 Toast 的三个硬约束（实测，别"优化"掉）：PowerShell **绝对路径**、**不要 `detached`**、**stdio 保留管道并 drain**（`'ignore'` 会让 Toast 静默失效且退出码仍为 0）。
+Toast 身份**不许写死**：候选在 `src/aumid.ts`（新 `com.deepseek.dsh` 优先，旧 `electron.app.DeepSeek Harness` 兜底），
+子进程先探测 `CreateToastNotifier(...).Setting` 是否非空再 Show，选中身份写进 debug ring；`DSH_NOTIFY_AUMID=id1;id2` 可覆盖。
 
 ## 通知形式、按情况音效与弹窗文本
 

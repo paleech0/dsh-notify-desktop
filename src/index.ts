@@ -37,6 +37,7 @@ import { parseEventWavs } from './event-wav.ts'
 import { deleteTextTemplate, readTextLibrary, saveTextTemplate } from './text-store.ts'
 // Type-only: brings the ctx.webServer Context merge into this program.
 import type {} from '@deepseek-ai/dsh-host-webserver'
+import { AUMID_OVERRIDE_ENV, aumidCandidates, parseAumidLine } from './aumid.ts'
 import { notifyProjection } from './projection.ts'
 
 /** Cordis plugin name (the Loader entry and the client bundle id). */
@@ -331,14 +332,6 @@ function observeQuestion<T>(request: unknown, next: () => Promise<T>): Promise<T
     },
   )
 }
-
-/**
- * The AppUserModelID Windows shows as the toast's source. This is the one
- * Electron's own renderer notifications use on this app (verified: the toast
- * reads "DeepSeek Harness" with its icon), so the host-raised toast is
- * indistinguishable from a renderer one.
- */
-const TOAST_AUMID = 'electron.app.DeepSeek Harness'
 
 /**
  * The sound catalog, mirroring `SOUND_CHOICES` in `src/types.ts`.
@@ -770,16 +763,42 @@ function xmlEscape(text: string): string {
 }
 
 /**
- * The toast half of the child script: build the XML from the environment
- * variable and show it through the shell's own AUMID.
+ * The identity half of the child script: pick the first candidate the OS
+ * actually knows.
+ *
+ * `CreateToastNotifier` answers for any string, but only a registered identity
+ * reports a `Setting` value; an unregistered one reports null. The candidates
+ * arrive newest-first through the environment (never in the command text), and
+ * the winner is printed so the host can put it in the diagnostics ring. When
+ * none is registered the last candidate (the legacy identity) is used anyway:
+ * failing explicitly buys nothing here, and the sound still plays.
  */
-const TOAST_SCRIPT_LINES: readonly string[] = [
+export const AUMID_RESOLVE_LINES: readonly string[] = [
+  '$rawIds = [string]$env:DSH_NOTIFY_AUMIDS',
+  '$candidates = @($rawIds -split ";" | Where-Object { $_ -ne "" })',
+  '$aumid = $null',
+  'foreach ($candidate in $candidates) {',
+  '  try {',
+  '    $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($candidate)',
+  '    if ($null -ne $notifier -and $null -ne $notifier.Setting) { $aumid = $candidate; break }',
+  '  } catch { }',
+  '}',
+  'if ($null -eq $aumid) { $aumid = @($candidates)[-1] }',
+  '[Console]::Out.WriteLine("DSH_NOTIFY_AUMID=" + $aumid)',
+]
+
+/**
+ * The toast half of the child script: resolve the identity, build the XML from
+ * the environment variable, show it through that identity.
+ */
+export const TOAST_SCRIPT_LINES: readonly string[] = [
   '[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null',
   '[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null',
+  ...AUMID_RESOLVE_LINES,
   '$xml = New-Object Windows.Data.Xml.Dom.XmlDocument',
   '$xml.LoadXml($env:DSH_NOTIFY_XML)',
   '$toast = New-Object Windows.UI.Notifications.ToastNotification $xml',
-  "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('" + TOAST_AUMID + "').Show($toast)",
+  '[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($aumid).Show($toast)',
 ]
 
 /**
@@ -858,6 +877,7 @@ function showHostToast(title: string, body: string, sound: unknown, customFile?:
     + '<text>' + xmlEscape(title.slice(0, 120)) + '</text>'
     + '<text>' + xmlEscape(body.replaceAll(/\s+/g, ' ').slice(0, 300)) + '</text>'
     + '</binding></visual>' + audio + '</toast>'
+  const candidates = aumidCandidates(process.env[AUMID_OVERRIDE_ENV])
   const script = [...TOAST_SCRIPT_LINES, ...MEDIA_SCRIPT_LINES].join('; ')
   try {
     // Absolute path first: the desktop host process does not necessarily carry
@@ -873,13 +893,21 @@ function showHostToast(title: string, body: string, sound: unknown, customFile?:
         DSH_NOTIFY_MEDIA: chosen.wav ?? '',
         DSH_NOTIFY_WAVCACHE: wavCache,
         DSH_NOTIFY_FFMPEG: ffmpeg,
+        DSH_NOTIFY_AUMIDS: candidates.join(';'),
       },
     })
     // Piped stdio, drained rather than ignored: with `stdio: 'ignore'` the
     // child starts and exits cleanly but Windows never shows its toast
     // (measured on this machine, three variants, one toast).
-    child.stdout?.resume()
+    let output = ''
+    child.stdout?.on('data', (chunk: Buffer) => {
+      output = (output + chunk.toString()).slice(-4096)
+    })
     child.stderr?.resume()
+    child.on('close', () => {
+      const used = parseAumidLine(output) ?? 'unknown'
+      note('host-toast aumid=' + used + ' candidates=' + candidates.join('|'))
+    })
     child.on('error', error => {
       clientReports.push(new Date().toISOString().slice(11, 19) + ' host-toast spawn failed: ' + String(error))
       while (clientReports.length > REPORT_LIMIT) clientReports.shift()

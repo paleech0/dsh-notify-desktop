@@ -131,7 +131,7 @@
 运行时不在范围内时，可以显式豁免：
 
 ```powershell
-dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.2.0 --dsh-version <你的版本> --accept-risk
+dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.2.1 --dsh-version <你的版本> --accept-risk
 ```
 
 ## 工作原理
@@ -158,6 +158,11 @@ dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.2.0 --dsh-ve
 | `POST /dsh-notify/pick-file`、`GET /dsh-notify/foreground` | Windows 选文件框；OS 级焦点判定 |
 | `GET /dsh-notify/questions` | 轮询宿主侧提问队列 |
 
+**Toast 身份自适应。** 桌面端可能用两个 AppUserModelID 之一登记通知：新版是 `com.deepseek.dsh`，
+旧版是 `electron.app.DeepSeek Harness`。宿主不写死：弹 Toast 前先在子进程里探测候选
+（`CreateToastNotifier(...).Setting` 非空即视为已登记），新号优先、旧号兜底，选中的身份会记进诊断接口。
+需要手动指定时，启动桌面端前设 `DSH_NOTIFY_AUMID=id1;id2`（分号分隔，按顺序尝试）。
+
 ## 排查
 
 Windows 通知**不进操作中心**，所以诊断接口是唯一的证据通道。端口每次启动可能不同，取当前桌面端 Web 地址里的那个：
@@ -167,7 +172,8 @@ Invoke-WebRequest http://127.0.0.1:<桌面端端口>/dsh-notify/debug
 ```
 
 返回投影注册状态、客户端最近 40 条上报（每条决定、通道选择、平台结果），以及音效链路状态
-（`media.ffmpeg`、`media.soundPlayers`）。
+（`media.ffmpeg`、`media.soundPlayers`）。每次宿主弹 Toast 还会记一行
+`host-toast aumid=… candidates=…`，可以确认这次用的是哪个通知身份。
 
 ## 开发
 
