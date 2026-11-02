@@ -23,6 +23,7 @@
     "url": "https://github.com/paleech0/dsh-notify-desktop/issues"
   },
   "main": "lib/index.js",
+  "types": "./lib/types/index.d.ts",
   "exports": {
     ".": {
       "types": "./lib/types/index.d.ts",
