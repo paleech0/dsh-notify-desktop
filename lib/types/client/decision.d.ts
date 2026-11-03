@@ -65,6 +65,17 @@ export declare function scenarioSound(settings: NotifySettings, scenario: Notify
  * @returns true when nothing visual is raised.
  */
 export declare function isSoundOnly(settings: NotifySettings): boolean;
+/**
+ * Whether this trigger from a subagent-origin session must stay silent.
+ *
+ * `all` never mutes; `silent` mutes every trigger (turn ends, approvals,
+ * questions — and the caller also drops the reminder for that session);
+ * `quiet` mutes only the finished turn, which is the burst this exists for.
+ * @param settings - the live settings.
+ * @param trigger - what raised the signal.
+ * @returns true when the signal must not become a toast.
+ */
+export declare function subagentMuted(settings: NotifySettings, trigger: NotifyTrigger): boolean;
 /** A decision to show one toast. */
 export interface NotifyDecision {
     /** The situation the signal belongs to. */
@@ -80,6 +91,12 @@ export interface DecisionInput {
     readonly trigger: NotifyTrigger;
     /** The session the signal belongs to. */
     readonly sessionId: string;
+    /**
+     * The session list row's `origin`; `'subagent'` marks a delegated child
+     * session (the sidebar hides those rows by the same field). Absent for an
+     * ordinary conversation and for a user's own fork.
+     */
+    readonly sessionOrigin?: 'subagent';
     /** Whether the application window has focus. */
     readonly focused: boolean;
     /** The de-duplication key for this exact signal. */

@@ -15,7 +15,8 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { NotifyMode, NotifySettings, SoundId, SoundLibrary } from '../types.ts'
+import type { NotifyMode, NotifySettings, SoundId, SoundLibrary, SubagentMode } from '../types.ts'
+import { SUBAGENT_MODES } from '../types.ts'
 import {
   SCENARIO_IDS,
   type NotifyScenario,
@@ -157,6 +158,13 @@ const MODES: ReadonlyArray<{ value: NotifyMode; labelKey: NotifyKey; descKey: No
   { value: 'both', labelKey: 'settings.mode.both', descKey: 'settings.mode.bothDesc' },
   { value: 'notify', labelKey: 'settings.mode.notify', descKey: 'settings.mode.notifyDesc' },
   { value: 'sound', labelKey: 'settings.mode.sound', descKey: 'settings.mode.soundDesc' },
+]
+
+/** The subagent gears, in presentation order; SUBAGENT_MODES is the domain. */
+const SUBAGENT_GEARS: ReadonlyArray<{ value: SubagentMode; labelKey: NotifyKey; descKey: NotifyKey }> = [
+  { value: 'silent', labelKey: 'settings.situations.subagentSilent', descKey: 'settings.situations.subagentSilentDesc' },
+  { value: 'quiet', labelKey: 'settings.situations.subagentQuiet', descKey: 'settings.situations.subagentQuietDesc' },
+  { value: 'all', labelKey: 'settings.situations.subagentAll', descKey: 'settings.situations.subagentAllDesc' },
 ]
 
 /** The locale key of each selectable sound; an unknown id falls back to the first. */
@@ -405,6 +413,27 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
                 props.set({ [entry.field]: checked } as Partial<NotifySettings>)
               }}
             />
+          ))}
+        </div>
+        <div className="dsh_notify_subcard">
+          <div className="dsh_notify_subcardTitle">{t('settings.situations.subagentTitle')}</div>
+          <div className="dsh_notify_rowDesc">{t('settings.situations.subagentDesc')}</div>
+          {SUBAGENT_GEARS.map(gear => (
+            <label key={gear.value} className={formEnabled ? 'dsh_notify_modeRow' : 'dsh_notify_modeRow dsh_notify_modeRowDisabled'}>
+              <input
+                type="radio"
+                name="dsh-notify-subagent-mode"
+                disabled={!formEnabled}
+                checked={settings.subagentMode === gear.value}
+                onChange={() => {
+                  props.set({ subagentMode: gear.value })
+                }}
+              />
+              <span className="dsh_notify_modeText">
+                <span className="dsh_notify_rowLabel">{t(gear.labelKey)}</span>
+                <span className="dsh_notify_rowDesc">{t(gear.descKey)}</span>
+              </span>
+            </label>
           ))}
         </div>
         <div className="dsh_notify_subcard">

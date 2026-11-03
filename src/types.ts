@@ -173,6 +173,27 @@ export const NOTIFY_MODES = Object.freeze(['both', 'notify', 'sound'] as const)
 /** One delivery mode. */
 export type NotifyMode = (typeof NOTIFY_MODES)[number]
 
+/**
+ * How a background subagent session's notifications are treated.
+ *
+ * A delegated subagent session is a step inside its parent turn, not a
+ * conversation of its own, and the projection seam delivers it like any other
+ * session — so one delegation that spawns N children would otherwise raise N
+ * completion toasts.
+ *
+ * `silent`: nothing at all from a child session — its finished turns, its
+ * approvals and questions, and the reminder are all dropped. The quietest
+ * gear; a child that really stops for an approval will sit there unheard.
+ * `quiet` (default): its finished turn stays silent, but its approvals,
+ * questions and reminder still notify.
+ * `all`: every child session notifies exactly like an ordinary conversation —
+ * the behaviour before this switch existed.
+ */
+export const SUBAGENT_MODES = Object.freeze(['silent', 'quiet', 'all'] as const)
+
+/** One subagent notification mode. */
+export type SubagentMode = (typeof SUBAGENT_MODES)[number]
+
 /** The built-in title: what the composed title was before templates existed. */
 export const DEFAULT_TITLE_TEMPLATE = '{工作区} · {状态}'
 
@@ -211,6 +232,8 @@ export interface NotifySettings {
   readonly notifyAborted: boolean
   readonly notifyBlocked: boolean
   readonly notifyMaxTokens: boolean
+  /** How a background subagent session's notifications are treated. */
+  readonly subagentMode: SubagentMode
   /** Notify while a session waits for a tool-approval decision. */
   readonly notifyApproval: boolean
   /** Notify while a session waits for an answer to a question. */
@@ -263,6 +286,7 @@ export const DEFAULT_SETTINGS: NotifySettings = Object.freeze({
   notifyAborted: false,
   notifyBlocked: true,
   notifyMaxTokens: true,
+  subagentMode: 'quiet',
   notifyApproval: true,
   notifyQuestion: true,
   notifyPlanReview: true,

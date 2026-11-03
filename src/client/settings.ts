@@ -15,12 +15,14 @@ import {
   DEFAULT_TITLE_TEMPLATE,
   NOTIFY_MODES,
   SOUND_IDS,
+  SUBAGENT_MODES,
   type LegacyTextTemplates,
   type NotifyMode,
   type NotifySettings,
   type NotifySounds,
   type NotifyTexts,
   type SoundId,
+  type SubagentMode,
 } from '../types.ts'
 import {
   SCENARIO_IDS,
@@ -63,6 +65,11 @@ function clampMinutes(value: unknown): number {
 /** One delivery mode, or the default for anything the catalog does not name. */
 function clampMode(value: unknown): NotifyMode {
   return (NOTIFY_MODES as readonly string[]).includes(value as string) ? value as NotifyMode : DEFAULT_SETTINGS.mode
+}
+
+/** One subagent notification mode, or the default for anything unknown. */
+function clampSubagentMode(value: unknown): SubagentMode {
+  return (SUBAGENT_MODES as readonly string[]).includes(value as string) ? value as SubagentMode : DEFAULT_SETTINGS.subagentMode
 }
 
 /** A library id: what a folder listing produced, and the only ids not in SOUND_IDS. */
@@ -186,6 +193,7 @@ export function readSettings(storage: SettingsStorage | undefined = ambientStora
       notifyAborted: clampBoolean(saved['notifyAborted'], DEFAULT_SETTINGS.notifyAborted),
       notifyBlocked: clampBoolean(saved['notifyBlocked'], DEFAULT_SETTINGS.notifyBlocked),
       notifyMaxTokens: clampBoolean(saved['notifyMaxTokens'], DEFAULT_SETTINGS.notifyMaxTokens),
+      subagentMode: clampSubagentMode(saved['subagentMode']),
       notifyApproval: clampBoolean(saved['notifyApproval'], DEFAULT_SETTINGS.notifyApproval),
       notifyQuestion: clampBoolean(saved['notifyQuestion'], DEFAULT_SETTINGS.notifyQuestion),
       notifyPlanReview: clampBoolean(saved['notifyPlanReview'], DEFAULT_SETTINGS.notifyPlanReview),
@@ -236,6 +244,7 @@ export function createSettingsStore(storage: SettingsStorage | undefined = ambie
         ...snapshot,
         ...patch,
         mode: patch.mode === undefined ? snapshot.mode : clampMode(patch.mode),
+        subagentMode: clampSubagentMode(patch.subagentMode ?? snapshot.subagentMode),
         remindAfterMinutes: clampMinutes(patch.remindAfterMinutes ?? snapshot.remindAfterMinutes),
         sounds: clampSounds(patch.sounds ?? snapshot.sounds),
         texts: clampTexts(patch.texts ?? snapshot.texts),

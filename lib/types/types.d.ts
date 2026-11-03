@@ -111,6 +111,25 @@ export declare const DEFAULT_TEXT_CHOICE = "default";
 export declare const NOTIFY_MODES: readonly ["both", "notify", "sound"];
 /** One delivery mode. */
 export type NotifyMode = (typeof NOTIFY_MODES)[number];
+/**
+ * How a background subagent session's notifications are treated.
+ *
+ * A delegated subagent session is a step inside its parent turn, not a
+ * conversation of its own, and the projection seam delivers it like any other
+ * session — so one delegation that spawns N children would otherwise raise N
+ * completion toasts.
+ *
+ * `silent`: nothing at all from a child session — its finished turns, its
+ * approvals and questions, and the reminder are all dropped. The quietest
+ * gear; a child that really stops for an approval will sit there unheard.
+ * `quiet` (default): its finished turn stays silent, but its approvals,
+ * questions and reminder still notify.
+ * `all`: every child session notifies exactly like an ordinary conversation —
+ * the behaviour before this switch existed.
+ */
+export declare const SUBAGENT_MODES: readonly ["silent", "quiet", "all"];
+/** One subagent notification mode. */
+export type SubagentMode = (typeof SUBAGENT_MODES)[number];
 /** The built-in title: what the composed title was before templates existed. */
 export declare const DEFAULT_TITLE_TEMPLATE = "{\u5DE5\u4F5C\u533A} \u00B7 {\u72B6\u6001}";
 /** The built-in body: just the summary. */
@@ -146,6 +165,8 @@ export interface NotifySettings {
     readonly notifyAborted: boolean;
     readonly notifyBlocked: boolean;
     readonly notifyMaxTokens: boolean;
+    /** How a background subagent session's notifications are treated. */
+    readonly subagentMode: SubagentMode;
     /** Notify while a session waits for a tool-approval decision. */
     readonly notifyApproval: boolean;
     /** Notify while a session waits for an answer to a question. */

@@ -25,6 +25,9 @@ no longer makes popups
   requests, questions, plan reviews, and one nudge for a wait that drags on.
 - **Quiet when you are there** — nothing pops while the DSH window has focus, and each event notifies
   once (three-second de-duplication).
+- **Three subagent gears** — how a background subagent session notifies: never notify / silent on finish but
+  notify while waiting (default) / notify like the main session. The default keeps one delegation from
+  storming, while a child that really stops for an approval or a question still reaches you.
 - **A sound and a text per situation** — nine situations (five turn ends, three waits, one reminder),
   each with its own sound and its own popup text; each situation can store up to three custom texts, and
   every row has a Preview button that shows and plays exactly what it will do.
@@ -80,6 +83,7 @@ this machine; every change applies immediately.
 | Group | Switches |
 |---|---|
 | A session ends | Completed / Error / Aborted / Blocked / Token limit reached (each row carries an example) |
+| Subagent sessions | Three gears: never notify / silent on finish but notify while waiting (default) / notify like the main session |
 | Waiting on you | Waiting for approval / an answer / a plan review (each row carries an example) |
 
 <img width="409" height="427" alt="屏幕截图 2026-10-25 181130" src="https://github.com/user-attachments/assets/d636dc8b-e19f-4f4f-a43c-d0280612594e" />
