@@ -50,6 +50,30 @@ describe('notification decision', () => {
     expect(decideNotification(input({ trigger: { kind: 'turn', reason: 'max-tokens' } }))).not.toBeNull()
   })
 
+  it('treats a subagent session per the chosen gear', () => {
+    // quiet (default): the finished turn is silent, waits still decide.
+    expect(decideNotification(input({ sessionOrigin: 'subagent' }))).toBeNull()
+    for (const pending of ['approval', 'question', 'plan-review'] as const) {
+      expect(decideNotification(input({
+        sessionOrigin: 'subagent',
+        trigger: { kind: 'pending', pending },
+      }))).not.toBeNull()
+    }
+    // all: the turn notifies like an ordinary session.
+    expect(decideNotification(input({
+      sessionOrigin: 'subagent',
+      settings: settings({ subagentMode: 'all' }),
+    }))).not.toBeNull()
+    // silent: even a wait is dropped.
+    expect(decideNotification(input({
+      sessionOrigin: 'subagent',
+      settings: settings({ subagentMode: 'silent' }),
+      trigger: { kind: 'pending', pending: 'approval' },
+    }))).toBeNull()
+    // An ordinary conversation is never affected by the gear.
+    expect(decideNotification(input({ settings: settings({ subagentMode: 'silent' }) }))).not.toBeNull()
+  })
+
   it('honours each blocking-interaction switch', () => {
     const approval = input({ trigger: { kind: 'pending', pending: 'approval' } })
     expect(decideNotification(approval)).not.toBeNull()

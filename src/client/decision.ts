@@ -131,6 +131,22 @@ export function isSoundOnly(settings: NotifySettings): boolean {
   return settings.mode === 'sound'
 }
 
+/**
+ * Whether this trigger from a subagent-origin session must stay silent.
+ *
+ * `all` never mutes; `silent` mutes every trigger (turn ends, approvals,
+ * questions — and the caller also drops the reminder for that session);
+ * `quiet` mutes only the finished turn, which is the burst this exists for.
+ * @param settings - the live settings.
+ * @param trigger - what raised the signal.
+ * @returns true when the signal must not become a toast.
+ */
+export function subagentMuted(settings: NotifySettings, trigger: NotifyTrigger): boolean {
+  if (settings.subagentMode === 'all') return false
+  if (settings.subagentMode === 'silent') return true
+  return trigger.kind === 'turn'
+}
+
 /** A decision to show one toast. */
 export interface NotifyDecision {
   /** The situation the signal belongs to. */
@@ -147,6 +163,12 @@ export interface DecisionInput {
   readonly trigger: NotifyTrigger
   /** The session the signal belongs to. */
   readonly sessionId: string
+  /**
+   * The session list row's `origin`; `'subagent'` marks a delegated child
+   * session (the sidebar hides those rows by the same field). Absent for an
+   * ordinary conversation and for a user's own fork.
+   */
+  readonly sessionOrigin?: 'subagent'
   /** Whether the application window has focus. */
   readonly focused: boolean
   /** The de-duplication key for this exact signal. */
@@ -169,6 +191,11 @@ export function decideNotification(input: DecisionInput): NotifyDecision | null 
   if (!settings.enabled) return null
   const scenario = scenarioOfTrigger(trigger)
   if (!scenarioEnabled(settings, scenario)) return null
+  // A subagent session's finished turn is a step inside its parent turn: one
+  // delegation would otherwise raise a burst of toasts for work nobody asked to
+  // be told about. The chosen gear decides how far the muting goes; approvals
+  // and questions are only dropped in the `silent` gear.
+  if (input.sessionOrigin === 'subagent' && subagentMuted(settings, trigger)) return null
   // ZCode's window suppression: while the harness window is focused the user is
   // already in front of the app, so nothing toasts. 0.2.0-rc.2 exposes no
   // "currently open session" signal, so the focused window is the whole input.

@@ -143,8 +143,8 @@ describe('notification settings section', () => {
     ])
     // eight situation switches: five outcomes + three waiting kinds
     expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(9)
-    // three delivery radios
-    expect(container.querySelectorAll('input[type="radio"]')).toHaveLength(3)
+    // three delivery radios plus the three subagent gears
+    expect(container.querySelectorAll('input[type="radio"]')).toHaveLength(6)
     // the test notification belongs to the first card
     expect(buttons(container, zh['settings.test.button'])).toHaveLength(1)
     // every enabled situation gets one row; aborted is off by default

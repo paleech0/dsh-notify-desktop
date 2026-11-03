@@ -35,6 +35,7 @@ describe('notification contract', () => {
       notifyAborted: false,
       notifyBlocked: true,
       notifyMaxTokens: true,
+      subagentMode: 'quiet',
       notifyApproval: true,
       notifyQuestion: true,
       notifyPlanReview: true,

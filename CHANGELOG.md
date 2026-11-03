@@ -4,6 +4,25 @@ All notable changes to this plugin are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Background subagent sessions no longer raise a toast storm, with three gears to choose from.**
+  DSH lists every delegated `subagent` session as its own session (`origin: 'subagent'`, hidden from
+  the sidebar by that field), so one delegation that spawns N children used to raise N completion
+  toasts. Card 2 now carries a three-way choice (`subagentMode`):
+  - `quiet` (**default**) — a subagent's finished turn is silent, so one delegation never storms;
+    its approvals, questions and the reminder still notify.
+  - `silent` — nothing at all from a subagent session, including its approvals, questions and
+    reminder; the quietest gear, at the risk of missing a child that really waits on you.
+  - `all` — every subagent session notifies like an ordinary conversation (the pre-0.2.2 behaviour).
+
+  The gate lives in the pure decision function (`subagentMuted`) and only matches rows whose
+  `origin` is `'subagent'`, so an ordinary conversation and a user's own fork are untouched. The
+  diagnostics ring labels a suppressed child turn `-> suppressed (subagent quiet|silent)` and a
+  dropped child wait `-> suppressed (subagent silent)`.
+
 ## [0.2.1] - 2026-10-31
 
 ### Fixed
