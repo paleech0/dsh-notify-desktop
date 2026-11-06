@@ -768,37 +768,59 @@ export function apply(ctx: ClientContext): void {
     }
   }, 'dsh-notify-desktop: question poll')
 
-  ctx.slots.inject('settings.section', () => ctx.slots.register({
-    name: 'settings.section',
-    id: 'notify',
-    order: 60,
-    label: () => t('nav'),
-    locale: NS,
-    inject: (): NotifySectionInjected => ({
-      store,
-      set,
-      sendTest,
-      previewScenario,
-      texts,
-      pickFile: pickSoundFile,
-      loadLibrary: soundLibrary,
-      importSound,
-      deleteSound,
-      cacheInfo: soundCacheInfo,
-      clearCache: clearSoundCache,
-      tr: t,
-      language,
-      setLanguage: (value: PluginLanguage) => {
-        set({ language: value })
-      },
-      subscribeLanguage: (listener: () => void) => {
-        const offStore = store.subscribe(listener)
-        const offLocale = ctx.locale.subscribe(listener)
-        return () => {
-          offStore()
-          offLocale()
-        }
-      },
-    }),
-  }, NotifySettingsSection))
+  // The settings navigation reads this entry's label, and a fresh registration is
+  // what makes it re-read one — so a plugin-language change re-registers the
+  // section instead of leaving an English "Notifications" beside Chinese copy.
+  ctx.slots.inject('settings.section', () => {
+    const register = (): (() => void) => ctx.slots.register({
+      name: 'settings.section',
+      id: 'notify',
+      order: 60,
+      label: () => t('nav'),
+      locale: NS,
+      inject: (): NotifySectionInjected => ({
+        store,
+        set,
+        sendTest,
+        previewScenario,
+        texts,
+        pickFile: pickSoundFile,
+        loadLibrary: soundLibrary,
+        importSound,
+        deleteSound,
+        cacheInfo: soundCacheInfo,
+        clearCache: clearSoundCache,
+        tr: t,
+        language,
+        setLanguage: (value: PluginLanguage) => {
+          set({ language: value })
+        },
+        subscribeLanguage: (listener: () => void) => {
+          const offStore = store.subscribe(listener)
+          const offLocale = ctx.locale.subscribe(listener)
+          return () => {
+            offStore()
+            offLocale()
+          }
+        },
+      }),
+    }, NotifySettingsSection)
+    let dispose = register()
+    let current = language()
+    /** Re-register only when the resolved language really changed. */
+    const refresh = (): void => {
+      const next = language()
+      if (next === current) return
+      current = next
+      dispose()
+      dispose = register()
+    }
+    const offStore = store.subscribe(refresh)
+    const offLocale = ctx.locale.subscribe(refresh)
+    return () => {
+      offStore()
+      offLocale()
+      dispose()
+    }
+  })
 }

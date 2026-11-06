@@ -19,6 +19,12 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 - `GET /dsh-notify/sound-library` also reports `ffmpeg: boolean`; a host that does not send it is treated as
   "ffmpeg present" so an older host never raises a false warning.
 
+### Fixed
+
+- The settings navigation row follows the plugin language again: the section re-registers when the resolved
+  language changes, which is how the shell re-reads an entry's label. Before, switching to 中文 could leave
+  "Notifications" in the sidebar while the page itself was Chinese.
+
 ## [0.2.2] - 2026-11-06
 
 ### Added
