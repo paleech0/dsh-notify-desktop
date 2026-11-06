@@ -66,6 +66,7 @@
 | 通知形式 | 三选一：**通知 + 提示音**（默认）/ **仅通知**（只弹窗）/ **仅提示音**（只出声，不弹窗） |
 | 语言 | 卡片右上角：**自动**（跟随 DSH 的语言）/ **中文** / **English**。切换只改插件自己的界面文案与弹窗文本，DSH 其余界面不受影响 |
 
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-zh.png" width="620" alt="卡一「桌面通知」：右上角语言切换、总开关、发送测试通知与通知形式">
 点「发送测试通知」弹出的系统通知长这样：
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/toast-zh.png" width="460" alt="测试通知：DeepSeek Harness · 测试通知 · 看到这条通知，说明弹窗与默认提示音均正常">
