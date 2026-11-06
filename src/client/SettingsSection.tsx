@@ -15,7 +15,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { NotifyMode, NotifySettings, PluginLanguage, SoundId, SoundLibrary } from '../types.ts'
+import { DEFAULT_SETTINGS, type NotifyMode, type NotifySettings, type PluginLanguage, type SoundId, type SoundLibrary } from '../types.ts'
 import {
   SCENARIO_IDS,
   type NotifyScenario,
@@ -315,7 +315,19 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
     const removed = await props.deleteSound(id)
     setSoundConfirm(null)
     setLibraryNote(removed ? t('settings.soundLibrary.removed') : t('settings.soundLibrary.addFailed'))
-    if (removed) await refreshLibrary()
+    if (!removed) return
+    // A situation that still names the deleted file would quietly fall back to
+    // the system chime at play time; reset it here, while the user can see it.
+    const next: Record<NotifyScenario, SoundId> = { ...settings.sounds }
+    let changed = false
+    for (const scenario of SCENARIO_IDS) {
+      if (next[scenario] === id) {
+        next[scenario] = DEFAULT_SETTINGS.sounds[scenario]
+        changed = true
+      }
+    }
+    if (changed) props.set({ sounds: next })
+    await refreshLibrary()
   }
 
   /**

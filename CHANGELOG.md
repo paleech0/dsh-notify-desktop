@@ -18,9 +18,15 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 - `GET /dsh-notify/sound-library` also reports `ffmpeg: boolean`; a host that does not send it is treated as
   "ffmpeg present" so an older host never raises a false warning.
+- The custom-sounds copy now spells out how the three things relate: a situation picks a sound, importing copies the
+  file into the plugin's own folder (so the original may be moved or deleted), and the transcode cache is a temporary
+  derivative that clearing never deletes a sound.
 
 ### Fixed
 
+- Deleting a custom sound switches every situation that used it back to that situation's default sound. Before,
+  the stored id pointed at a file that no longer existed, the picker showed the raw id, and playback quietly fell
+  back to the system chime.
 - The settings navigation row follows the plugin language again: the section re-registers when the resolved
   language changes, which is how the shell re-reads an entry's label. Before, switching to 中文 could leave
   "Notifications" in the sidebar while the page itself was Chinese.

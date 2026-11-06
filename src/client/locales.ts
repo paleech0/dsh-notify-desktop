@@ -30,7 +30,7 @@ export const zh = {
 
   // Card 3 — per-situation sound + text, and the two libraries.
   'settings.customize.title': '通知自定义',
-  'settings.customize.desc': '给每个已勾选的情况分别挑选音效和弹窗文本；点「预览效果」马上看/听。没勾的情况不会出现在这里，去上面的「选择接收以下哪种情况的通知」里勾选。',
+  'settings.customize.desc': '给每个已勾选的情况分别挑选音效和弹窗文本；点「预览效果」马上看/听。没勾的情况不会出现在这里，去上面的「选择接收以下哪种情况的通知」里勾选。音效来自内置列表，或下方「自定义音效」里导入的文件；删除某个文件时，用到它的情况会自动改为默认音效。',
   'settings.scenario.sound': '音效',
   'settings.scenario.text': '文本',
   'settings.scenario.preview': '预览效果',
@@ -69,8 +69,8 @@ export const zh = {
   'settings.soundLibrary.addFailed': '操作失败：宿主没有响应，或这个格式不支持',
   'settings.soundLibrary.missing': '这个音效文件不在了，重新选一个或再添加一次',
   'settings.soundLibrary.remove': '删除',
-  'settings.soundLibrary.removeConfirm': '删除「{name}」？文件会被移除，正在使用它的情况会退回系统默认提示音。',
-  'settings.soundLibrary.desc': '点「添加音效…」选一个音频文件：它会被复制到 {path}，之后原文件移动或删除都不影响。支持 .wav / .mp3 / .m4a / .aac / .wma / .flac / .ogg / .opus；除 .wav 之外，首次播放时会转成 wav 并计入下面的「转换缓存」。',
+  'settings.soundLibrary.removeConfirm': '删除「{name}」？插件里的这份副本会被移除，用到它的情况自动改为默认音效。',
+  'settings.soundLibrary.desc': '点「添加音效…」选一个音频文件，插件会复制一份到 {path} 作为音效本体，之后原文件移动或删除都不影响。支持 .wav / .mp3 / .m4a / .aac / .wma / .flac / .ogg / .opus；除 .wav 外的格式要先转成 wav 才能播放，转出的临时文件计入下面的「转换缓存」。',
   'settings.soundLibrary.ffmpegMissing': '本机未安装 ffmpeg，mp3 / m4a / aac / wma / flac / ogg / opus 格式的音效不会播放（.wav 不受影响）。',
   'settings.soundLibrary.ffmpegInstall': '安装后返回本页即可生效：在 PowerShell 执行 winget install Gyan.FFmpeg',
   'settings.soundLibrary.ffmpegPreview': '该音效不是 .wav 格式，需要 ffmpeg 才能播放；本机未安装。',
@@ -88,7 +88,7 @@ export const zh = {
   'settings.cache.clear': '清理缓存',
   'settings.cache.cleared': '已清理 {files} 个缓存文件，释放 {size}',
   'settings.cache.failed': '清理失败：宿主没有响应',
-  'settings.cache.desc': '自定义音效里非 wav 的格式，首次播放时会转成 wav 存在本机（%LOCALAPPDATA%\\dsh-notify\\sounds）。缓存随时可以清，下次播放会自动重建。',
+  'settings.cache.desc': '非 wav 音效第一次播放时，由音效副本转出的临时 wav，存在 %LOCALAPPDATA%\\dsh-notify\\sounds。它不是音效本体：清理不会删除任何音效，只是下次播放要重新转一次。',
 
   // The saved popup texts (collapsed).
   'settings.textLibrary.title': '自定义文本',
@@ -201,7 +201,7 @@ export const en = {
   'settings.mode.soundDesc': 'Play the chosen sound without a toast.',
 
   'settings.customize.title': 'Notification setup',
-  'settings.customize.desc': 'Pick a sound and a popup text for each situation you enabled; Preview shows and plays it right away. Disabled situations do not appear here - tick them in the situations card above.',
+  'settings.customize.desc': 'Pick a sound and a popup text for each situation you enabled; Preview shows and plays it right away. Disabled situations do not appear here - tick them in the situations card above. Sounds come from the built-in list or from the files imported under "Custom sounds"; deleting one of those files switches every situation using it back to its default sound.',
   'settings.scenario.sound': 'Sound',
   'settings.scenario.text': 'Text',
   'settings.scenario.preview': 'Preview',
@@ -239,7 +239,7 @@ export const en = {
   'settings.soundLibrary.addFailed': 'Failed: the host did not answer, or the format is unsupported',
   'settings.soundLibrary.missing': 'That sound file is gone: pick another one, or add it again',
   'settings.soundLibrary.remove': 'Remove',
-  'settings.soundLibrary.removeConfirm': 'Delete "{name}"? The file is removed and any situation using it falls back to the default Windows chime.',
+  'settings.soundLibrary.removeConfirm': 'Delete "{name}"? The plugin\'s copy is removed, and any situation using it switches to its default sound.',
   'settings.soundLibrary.desc': 'Add sound… copies the audio file you pick into {path}, so moving or deleting the original later changes nothing. .wav / .mp3 / .m4a / .aac / .wma / .flac / .ogg / .opus; anything but a wav is transcoded on its first play and shows up in the transcode cache below.',
   'settings.soundLibrary.ffmpegMissing': 'ffmpeg is not installed, so mp3 / m4a / aac / wma / flac / ogg / opus sounds will not play (.wav is unaffected).',
   'settings.soundLibrary.ffmpegInstall': 'Install it, then return to this page: winget install Gyan.FFmpeg in PowerShell',
@@ -257,7 +257,7 @@ export const en = {
   'settings.cache.clear': 'Clear cache',
   'settings.cache.cleared': 'Cleared {files} cached file(s), freed {size}',
   'settings.cache.failed': 'Clear failed: the host did not answer',
-  'settings.cache.desc': 'A non-wav file from the custom sounds above is transcoded once into %LOCALAPPDATA%\\dsh-notify\\sounds. It is safe to clear: the next play rebuilds it.',
+  'settings.cache.desc': 'The temporary wav a non-wav sound is transcoded into on its first play, kept in %LOCALAPPDATA%\\dsh-notify\\sounds. It is not the sound itself: clearing it deletes no sound, it only makes the next play transcode again.',
 
   'settings.textLibrary.title': 'Custom texts',
   'settings.textLibrary.count': '{count} text(s)',

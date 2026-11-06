@@ -463,6 +463,38 @@ describe('notification settings section', () => {
     expect(buttons(container, en['settings.test.button'])).toHaveLength(1)
   })
 
+  it('switches situations back to their default when their sound is deleted', async () => {
+    const library: SoundLibrary = {
+      author: [],
+      custom: [{ id: 'custom:mine.wav', name: 'mine', file: 'mine.wav', bytes: 1024 }],
+      ffmpeg: true,
+    }
+    const { container, all } = await render({
+      loadLibrary: () => Promise.resolve(library),
+      deleteSound: () => Promise.resolve(true),
+    } as Partial<NotifySectionProps>)
+    await act(async () => {
+      all.set({ sounds: { ...DEFAULT_SETTINGS.sounds, completed: 'custom:mine.wav' } })
+    })
+    expect(all.store.getSnapshot().sounds['completed']).toBe('custom:mine.wav')
+    const header = [...container.querySelectorAll('.dsh_notify_collapseHeader')]
+      .find(node => (node.textContent ?? '').includes(zh['settings.soundLibrary.title']))
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const remove = container.querySelector('.dsh_notify_soundItem .dsh_notify_danger') as HTMLButtonElement
+    await act(async () => {
+      remove.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const confirm = container.querySelector('.dsh_notify_confirm .dsh_notify_dangerButton') as HTMLButtonElement
+    await act(async () => {
+      confirm.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(all.store.getSnapshot().sounds['completed']).toBe(DEFAULT_SETTINGS.sounds['completed'])
+  })
+
   it('explains a non-wav sound that cannot play without ffmpeg', async () => {
     const { container } = await render({
       loadLibrary: () => Promise.resolve({

@@ -25,7 +25,7 @@ export declare const zh: {
     readonly 'settings.mode.sound': "仅提示音";
     readonly 'settings.mode.soundDesc': "只播该情况所选音效，不弹窗。";
     readonly 'settings.customize.title': "通知自定义";
-    readonly 'settings.customize.desc': "给每个已勾选的情况分别挑选音效和弹窗文本；点「预览效果」马上看/听。没勾的情况不会出现在这里，去上面的「选择接收以下哪种情况的通知」里勾选。";
+    readonly 'settings.customize.desc': "给每个已勾选的情况分别挑选音效和弹窗文本；点「预览效果」马上看/听。没勾的情况不会出现在这里，去上面的「选择接收以下哪种情况的通知」里勾选。音效来自内置列表，或下方「自定义音效」里导入的文件；删除某个文件时，用到它的情况会自动改为默认音效。";
     readonly 'settings.scenario.sound': "音效";
     readonly 'settings.scenario.text': "文本";
     readonly 'settings.scenario.preview': "预览效果";
@@ -62,8 +62,8 @@ export declare const zh: {
     readonly 'settings.soundLibrary.addFailed': "操作失败：宿主没有响应，或这个格式不支持";
     readonly 'settings.soundLibrary.missing': "这个音效文件不在了，重新选一个或再添加一次";
     readonly 'settings.soundLibrary.remove': "删除";
-    readonly 'settings.soundLibrary.removeConfirm': "删除「{name}」？文件会被移除，正在使用它的情况会退回系统默认提示音。";
-    readonly 'settings.soundLibrary.desc': "点「添加音效…」选一个音频文件：它会被复制到 {path}，之后原文件移动或删除都不影响。支持 .wav / .mp3 / .m4a / .aac / .wma / .flac / .ogg / .opus；除 .wav 之外，首次播放时会转成 wav 并计入下面的「转换缓存」。";
+    readonly 'settings.soundLibrary.removeConfirm': "删除「{name}」？插件里的这份副本会被移除，用到它的情况自动改为默认音效。";
+    readonly 'settings.soundLibrary.desc': "点「添加音效…」选一个音频文件，插件会复制一份到 {path} 作为音效本体，之后原文件移动或删除都不影响。支持 .wav / .mp3 / .m4a / .aac / .wma / .flac / .ogg / .opus；除 .wav 外的格式要先转成 wav 才能播放，转出的临时文件计入下面的「转换缓存」。";
     readonly 'settings.soundLibrary.ffmpegMissing': "本机未安装 ffmpeg，mp3 / m4a / aac / wma / flac / ogg / opus 格式的音效不会播放（.wav 不受影响）。";
     readonly 'settings.soundLibrary.ffmpegInstall': "安装后返回本页即可生效：在 PowerShell 执行 winget install Gyan.FFmpeg";
     readonly 'settings.soundLibrary.ffmpegPreview': "该音效不是 .wav 格式，需要 ffmpeg 才能播放；本机未安装。";
@@ -79,7 +79,7 @@ export declare const zh: {
     readonly 'settings.cache.clear': "清理缓存";
     readonly 'settings.cache.cleared': "已清理 {files} 个缓存文件，释放 {size}";
     readonly 'settings.cache.failed': "清理失败：宿主没有响应";
-    readonly 'settings.cache.desc': "自定义音效里非 wav 的格式，首次播放时会转成 wav 存在本机（%LOCALAPPDATA%\\dsh-notify\\sounds）。缓存随时可以清，下次播放会自动重建。";
+    readonly 'settings.cache.desc': "非 wav 音效第一次播放时，由音效副本转出的临时 wav，存在 %LOCALAPPDATA%\\dsh-notify\\sounds。它不是音效本体：清理不会删除任何音效，只是下次播放要重新转一次。";
     readonly 'settings.textLibrary.title': "自定义文本";
     readonly 'settings.textLibrary.count': "{count} 套";
     readonly 'settings.textLibrary.empty': "还没有自定义文本";

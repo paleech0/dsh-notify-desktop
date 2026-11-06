@@ -1,5 +1,5 @@
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
-import type { NotifySettings, PluginLanguage, SoundLibrary } from '../types.ts';
+import { type NotifySettings, type PluginLanguage, type SoundLibrary } from '../types.ts';
 import { type NotifyScenario } from '../scenarios.ts';
 import { type NotifyKey } from './locales.ts';
 import type { SoundCacheInfo } from './notifier.ts';
