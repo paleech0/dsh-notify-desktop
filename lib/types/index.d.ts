@@ -13,15 +13,21 @@ export declare function focusDesktopWindow(): void;
 /** The diagnostics route (GET) used while bringing the projection seam up. */
 export declare const DEBUG_ROUTE = "/dsh-notify/debug";
 /**
- * The identity half of the child script: pick the first candidate the OS
- * actually knows.
+ * The identity half of the child script: pick the first candidate the OS can
+ * actually resolve a toast identity through.
  *
- * `CreateToastNotifier` answers for any string, but only a registered identity
- * reports a `Setting` value; an unregistered one reports null. The candidates
- * arrive newest-first through the environment (never in the command text), and
- * the winner is printed so the host can put it in the diagnostics ring. When
- * none is registered the last candidate (the legacy identity) is used anyway:
- * failing explicitly buys nothing here, and the sound still plays.
+ * Two tiers. A registry entry under either hive's `AppUserModelId` key is the
+ * documented registration for an unpackaged app, so its presence alone wins —
+ * `Test-Path` over the keys, first tier. Only when nothing is registered does
+ * the probe fall back to the `Setting` check, which is coarse: measured on
+ * 2026-11-06 (DSH desktop 0.2.2-rc.1, Windows 11 25H2), `CreateToastNotifier`
+ * reports a `Setting` of `Enabled` even for an id nothing resolves anymore
+ * (the installer had moved the Start-menu shortcut to the manifest id), which
+ * is exactly what made toasts degrade to a raw-id label with no icon. When
+ * neither tier matches, the last candidate (the legacy identity) is used
+ * anyway: failing explicitly buys nothing here, and the sound still plays.
+ * Candidates arrive newest-first through the environment (never in the command
+ * text), and the winner is printed so the host can put it in the ring.
  */
 export declare const AUMID_RESOLVE_LINES: readonly string[];
 /**

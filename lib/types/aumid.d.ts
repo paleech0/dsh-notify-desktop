@@ -2,16 +2,21 @@
  * Which identity the host uses when it raises a Windows toast.
  *
  * Windows attributes a toast to an AppUserModelID, and shows the application's
- * display name and icon only for an identity it can resolve to the app (a
- * registered shortcut). Upgraded installs resolve the historical id
- * (`electron.app.DeepSeek Harness`); installs that only registered the
- * manifest's `dshDesktopAppId` (`com.deepseek.dsh`) resolve the newer one.
- * The toast child probes the candidates, prefers the historical id because it
- * carries the proper display name, and falls back to the manifest id, so
- * toasts keep working across the identity change without a per-machine
- * setting.
+ * display name and icon only for an identity it can resolve: a Start-menu
+ * shortcut carrying the id, or a registry entry under `AppUserModelId` — which
+ * is what this host itself writes at startup (see identity.ts, always the
+ * manifest id). The manifest id (`com.deepseek.dsh`) therefore leads the
+ * candidate list: this plugin registers it on every machine, and current
+ * installers put it on the Start-menu shortcut. The historical Electron id
+ * (`electron.app.DeepSeek Harness`) stays as a fallback for installs that
+ * still carry the old shortcut. Measured on 2026-11-06 (DSH desktop
+ * 0.2.2-rc.1, Windows 11 25H2): the installer had moved the shortcut to the
+ * manifest id and nothing resolved the legacy id anymore, so the previous
+ * legacy-first order degraded toasts to a raw-id label with no icon.
  */
-/** Candidate identities: the named legacy id first, the manifest id fallback. */
+/** The identity this host registers (identity.ts) and the probe prefers. */
+export declare const REGISTERED_IDENTITY_ID = "com.deepseek.dsh";
+/** Candidate identities: the registered manifest id first, the legacy fallback. */
 export declare const AUMID_CANDIDATES: readonly string[];
 /**
  * Environment variable that overrides the candidate list.

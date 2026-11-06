@@ -37,7 +37,8 @@ import { parseEventWavs } from './event-wav.ts'
 import { deleteTextTemplate, readTextLibrary, saveTextTemplate } from './text-store.ts'
 // Type-only: brings the ctx.webServer Context merge into this program.
 import type {} from '@deepseek-ai/dsh-host-webserver'
-import { AUMID_OVERRIDE_ENV, aumidCandidates, parseAumidLine } from './aumid.ts'
+import { AUMID_OVERRIDE_ENV, REGISTERED_IDENTITY_ID, aumidCandidates, parseAumidLine } from './aumid.ts'
+import { REG_EXE, ensureToastIdentity, type IdentityState } from './identity.ts'
 import { notifyProjection } from './projection.ts'
 
 /** Cordis plugin name (the Loader entry and the client bundle id). */
@@ -749,9 +750,6 @@ function hostSoundOf(sound: unknown, customFile?: unknown): HostSound {
 /** The Windows PowerShell 5.1 host this machine has (pwsh may be absent). */
 const POWERSHELL = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
 
-/** The registry query tool, fixed the same way {@link POWERSHELL} is. */
-const REG_EXE = 'C:\\Windows\\System32\\reg.exe'
-
 /** Escape one string for the toast XML. */
 function xmlEscape(text: string): string {
   return text
@@ -763,25 +761,36 @@ function xmlEscape(text: string): string {
 }
 
 /**
- * The identity half of the child script: pick the first candidate the OS
- * actually knows.
+ * The identity half of the child script: pick the first candidate the OS can
+ * actually resolve a toast identity through.
  *
- * `CreateToastNotifier` answers for any string, but only a registered identity
- * reports a `Setting` value; an unregistered one reports null. The candidates
- * arrive newest-first through the environment (never in the command text), and
- * the winner is printed so the host can put it in the diagnostics ring. When
- * none is registered the last candidate (the legacy identity) is used anyway:
- * failing explicitly buys nothing here, and the sound still plays.
+ * Two tiers. A registry entry under either hive's `AppUserModelId` key is the
+ * documented registration for an unpackaged app, so its presence alone wins —
+ * `Test-Path` over the keys, first tier. Only when nothing is registered does
+ * the probe fall back to the `Setting` check, which is coarse: measured on
+ * 2026-11-06 (DSH desktop 0.2.2-rc.1, Windows 11 25H2), `CreateToastNotifier`
+ * reports a `Setting` of `Enabled` even for an id nothing resolves anymore
+ * (the installer had moved the Start-menu shortcut to the manifest id), which
+ * is exactly what made toasts degrade to a raw-id label with no icon. When
+ * neither tier matches, the last candidate (the legacy identity) is used
+ * anyway: failing explicitly buys nothing here, and the sound still plays.
+ * Candidates arrive newest-first through the environment (never in the command
+ * text), and the winner is printed so the host can put it in the ring.
  */
 export const AUMID_RESOLVE_LINES: readonly string[] = [
   '$rawIds = [string]$env:DSH_NOTIFY_AUMIDS',
   '$candidates = @($rawIds -split ";" | Where-Object { $_ -ne "" })',
   '$aumid = $null',
   'foreach ($candidate in $candidates) {',
-  '  try {',
-  '    $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($candidate)',
-  '    if ($null -ne $notifier -and $null -ne $notifier.Setting) { $aumid = $candidate; break }',
-  '  } catch { }',
+  '  if ((Test-Path ("HKCU:\\SOFTWARE\\Classes\\AppUserModelId\\" + $candidate)) -or (Test-Path ("HKLM:\\SOFTWARE\\Classes\\AppUserModelId\\" + $candidate))) { $aumid = $candidate; break }',
+  '}',
+  'if ($null -eq $aumid) {',
+  '  foreach ($candidate in $candidates) {',
+  '    try {',
+  '      $notifier = [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($candidate)',
+  '      if ($null -ne $notifier -and $null -ne $notifier.Setting) { $aumid = $candidate; break }',
+  '    } catch { }',
+  '  }',
   '}',
   'if ($null -eq $aumid) { $aumid = @($candidates)[-1] }',
   '[Console]::Out.WriteLine("DSH_NOTIFY_AUMID=" + $aumid)',
@@ -918,6 +927,9 @@ function showHostToast(title: string, body: string, sound: unknown, customFile?:
     clientReports.push(new Date().toISOString().slice(11, 19) + ' host-toast threw: ' + String(error))
   }
 }
+
+/** What this boot's toast identity pass did, for the diagnostics route. */
+let identityState: IdentityState | undefined
 
 /**
  * Answer the host-toast route: read one JSON toast request and raise it.
@@ -1162,6 +1174,10 @@ function handleDebug(ctx: Context, req: IncomingMessage, res: ServerResponse): v
     }
     report['sessions'] = rows
     report['client'] = [...clientReports]
+    // What the identity registration did this boot: which id it ensured, and
+    // whether the write succeeded — the first thing to check when a toast
+    // still shows a raw-id label.
+    report['identity'] = identityState ?? null
     // Sound plumbing: without ffmpeg a non-wav custom sound has no way to play,
     // and this is the only place that fact is visible.
     report['media'] = {
@@ -1181,6 +1197,24 @@ function handleDebug(ctx: Context, req: IncomingMessage, res: ServerResponse): v
  */
 export function apply(ctx: Context): void {
   ctx.sessionProjections.register(notifyProjection())
+  // Register the toast identity before anything can toast (fire-and-forget,
+  // see identity.ts): the manifest id — candidates[0] — is what the probe
+  // prefers, so it is the id that gets a real name and icon. A machine that
+  // refuses the write still toasts, through whatever the shortcut carries.
+  // The promise is deliberately not awaited: nothing waits on registration.
+  ctx.effect(() => {
+    ensureToastIdentity({
+      identityId: REGISTERED_IDENTITY_ID,
+      packageRoot: join(dirname(fileURLToPath(import.meta.url)), '..'),
+      note,
+      onState: state => {
+        identityState = state
+      },
+      spawn,
+    })
+    // Nothing to undo: the registry entry outlives the plugin by design.
+    return () => {}
+  }, 'dsh-notify-desktop: toast identity registration')
   // Every question reaches this host-side global listener: the ask() service
   // fires the waterfall in the asking agent's scope, and only a global listener
   // sees scopes other than its own. Nothing here answers the question.
