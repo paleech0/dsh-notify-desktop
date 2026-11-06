@@ -8,15 +8,13 @@ clicking it brings the DSH window back to the front.
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-en.png" width="620" alt="Card 1, Desktop notifications: the language switch in the top-right corner, the master switch, the test notification and the delivery mode">
 
-## What's new in 0.2.2
+## What's new in 0.2.3
 
-- **The plugin speaks both languages.** A language control in the top-right corner of the settings card
-  switches the plugin's own copy and every popup text between Chinese and English, or leaves it on
-  **Auto** to follow the DSH interface language. Only the plugin changes — the rest of DSH keeps its own
-  language. `Auto` is the default, and existing settings and saved texts are preserved.
+- **No more silent mystery without ffmpeg.** Importing a non-wav sound on a machine without `ffmpeg` now shows a
+  yellow line in "Custom sounds" that explains what is missing and how to install it, and Preview says so instead
+  of doing nothing. Install ffmpeg, come back to the page, and it works — **no DSH restart**.
 - **Compatibility.** Verified on DSH desktop **0.2.2-rc.1** (plugin loading, projection delivery, host
-  toast, diagnostics and text-template routes). The declared range is unchanged
-  (`>=0.2.0-rc.2 <0.3.0-0`).
+  toast, diagnostics and text-template routes). The declared range is unchanged (`>=0.2.0-rc.2 <0.3.0-0`).
 
 ## What you get
 
@@ -119,6 +117,22 @@ row and keeps its sound and text, so ticking it again brings them back.
 **Your own files.** *Add sound…* copies the file into `%LOCALAPPDATA%\dsh-notify\custom`, so the
 original can move or be deleted afterwards. Accepted formats are `.wav`, `.mp3`, `.m4a`, `.aac`,
 `.wma`, `.flac`, `.ogg` and `.opus`. Deleting a custom sound asks for confirmation first.
+
+**Other formats need ffmpeg first.** The plugin plays audio through Windows' `SoundPlayer`, which only opens wav;
+an mp3, m4a or flac has to be turned into a wav with `ffmpeg` first. Nothing breaks without it: wav files and the shipped
+sounds still play, other formats stay silent, and the "Custom sounds" card shows a yellow line saying what is missing.
+
+Pick whichever is easiest (winget ships with Windows 10/11):
+
+```powershell
+winget install Gyan.FFmpeg     # recommended
+choco install ffmpeg           # if Chocolatey is installed
+scoop install ffmpeg           # if Scoop is installed
+```
+
+You can also download a build from [ffmpeg.org](https://ffmpeg.org/download.html) or
+[gyan.dev](https://www.gyan.dev/ffmpeg/builds/) and put `ffmpeg.exe` anywhere on your `PATH`. It works as soon as you
+come back to the settings page — **no DSH restart**.
 
 **When a sound stops.** A `.wav` plays directly. Anything else is transcoded once with the `ffmpeg` on
 your `PATH` and lands in the transcode cache inside "Custom sounds", which reports its size and can clear

@@ -4,6 +4,21 @@ All notable changes to this plugin are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2026-11-06
+
+### Added
+
+- The settings page explains a silent sound instead of leaving it a mystery: with no `ffmpeg` on `PATH`, the
+  "Custom sounds" card carries a yellow note with the install command, and Preview refuses a non-wav sound with
+  the same reason.
+- The host re-scans `PATH` for ffmpeg while it is missing, so installing it takes effect when the settings page
+  is reopened — no DSH restart.
+
+### Changed
+
+- `GET /dsh-notify/sound-library` also reports `ffmpeg: boolean`; a host that does not send it is treated as
+  "ffmpeg present" so an older host never raises a false warning.
+
 ## [0.2.2] - 2026-11-06
 
 ### Added

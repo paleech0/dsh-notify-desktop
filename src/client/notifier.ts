@@ -255,7 +255,7 @@ export function appWindowFocused(fresh = false): Promise<boolean> {
  * @returns both lists, or an empty library when the host is unreachable.
  */
 export function soundLibrary(): Promise<SoundLibrary> {
-  const empty: SoundLibrary = { author: [], custom: [] }
+  const empty: SoundLibrary = { author: [], custom: [], ffmpeg: true }
   const fetchImpl = globalThis.fetch
   if (fetchImpl === undefined) return Promise.resolve(empty)
   return fetchImpl(SOUND_LIBRARY_ROUTE, { headers: { [FOCUS_HEADER]: '1' } })
@@ -265,6 +265,9 @@ export function soundLibrary(): Promise<SoundLibrary> {
       return {
         author: Array.isArray(value?.author) ? value.author : [],
         custom: Array.isArray(value?.custom) ? value.custom : [],
+        // Only a host that answered `false` proves ffmpeg is missing; an older
+        // host (or no host at all) must not trigger the warning.
+        ffmpeg: (value as { ffmpeg?: unknown } | null)?.ffmpeg !== false,
       }
     }, () => empty)
 }

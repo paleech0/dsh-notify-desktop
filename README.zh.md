@@ -7,11 +7,10 @@
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-zh.png" width="620" alt="卡一「桌面通知」：右上角语言切换、总开关、发送测试通知与通知形式">
 
-## 0.2.2 更新
+## 0.2.3 更新
 
-- **插件自带中英双语**：设置卡片右上角新增语言切换（自动 / 中文 / English）。选「自动」跟随 DSH 的界面语言；
-  选中文或 English 只改插件自己——设置页文案和**弹窗文本**一起切换，DSH 其余界面不受影响。
-  默认「自动」，已有设置和自定义文本原样保留。
+- **没装 ffmpeg 不再一头雾水**：导入非 `.wav` 音效而本机没有 `ffmpeg` 时，设置页「自定义音效」里会出现黄色提示，
+  说明原因和安装方法；点「预览效果」也会直接告诉你，而不是静默无声。装好 ffmpeg 回到设置页即可生效，**不用重启**。
 - **兼容性**：在 DSH 桌面端 **0.2.2-rc.1** 实测通过（插件加载、会话投影、宿主 Toast、诊断与文本模板路由）；
   声明范围不变（`>=0.2.0-rc.2 <0.3.0-0`）。
 
@@ -106,6 +105,21 @@
 
 **用自己的文件。** 点「添加音效…」会把文件**复制**到 `%LOCALAPPDATA%\dsh-notify\custom`，所以原文件之后移动或删除都不影响。
 支持 `.wav`、`.mp3`、`.m4a`、`.aac`、`.wma`、`.flac`、`.ogg`、`.opus`。删除自定义音效会先弹行内确认。
+
+**其他格式要先装 ffmpeg。** 插件用 Windows 的 `SoundPlayer` 发音，它只认 wav；mp3、m4a、flac 这些格式得先用
+`ffmpeg` 转成 wav 才能播。没装也不会坏：`.wav` 和随插件发布的音效照常可用，其他格式保持静音，设置页「自定义音效」
+里会出现一行黄色提示，写清楚缺什么、怎么装。
+
+装法任选一种（Win10/11 自带 winget，最省事）：
+
+```powershell
+winget install Gyan.FFmpeg     # 推荐
+choco install ffmpeg           # 已装 Chocolatey
+scoop install ffmpeg           # 已装 Scoop
+```
+
+也可以从 [ffmpeg.org](https://ffmpeg.org/download.html) 或 [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) 下载构建包，
+把里面的 `ffmpeg.exe` 放进任意一个 `PATH` 目录。装好后回到设置页就能用，**不用重启 DSH**。
 
 **声音什么时候停。** `.wav` 直接播放；其他格式首次播放时用 `PATH` 上的 `ffmpeg` 转码一次，占用计入「自定义音效」里的
 **「转换缓存」**（在那里查看与清理）。文件类音效最长 8 秒；总开关关掉、切到「仅通知」，或窗口重获焦点时，正在响的**立刻停**。

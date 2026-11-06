@@ -64,6 +64,9 @@ export declare const zh: {
     readonly 'settings.soundLibrary.remove': "删除";
     readonly 'settings.soundLibrary.removeConfirm': "删除「{name}」？文件会被移除，正在使用它的情况会退回系统默认提示音。";
     readonly 'settings.soundLibrary.desc': "点「添加音效…」选一个音频文件：它会被复制到 {path}，之后原文件移动或删除都不影响。支持 .wav / .mp3 / .m4a / .aac / .wma / .flac / .ogg / .opus；除 .wav 之外，首次播放时会转成 wav 并计入下面的「转换缓存」。";
+    readonly 'settings.soundLibrary.ffmpegMissing': "这台机器没装 ffmpeg，导入的 mp3 / m4a / aac / wma / flac / ogg / opus 都不会出声（.wav 不受影响）。";
+    readonly 'settings.soundLibrary.ffmpegInstall': "安装：在 PowerShell 里执行 winget install Gyan.FFmpeg，装好回到这一页即可生效，不用重启。";
+    readonly 'settings.soundLibrary.ffmpegPreview': "这个音效不是 .wav 格式，要装了 ffmpeg 才能播放；本机暂时没有。";
     readonly 'settings.sounds.groupWindows': "Windows 音效";
     readonly 'settings.sounds.groupAuthor': "作者音效";
     readonly 'settings.sounds.groupCustom': "自定义音效";
@@ -214,6 +217,9 @@ export declare const en: {
     'settings.soundLibrary.remove': string;
     'settings.soundLibrary.removeConfirm': string;
     'settings.soundLibrary.desc': string;
+    'settings.soundLibrary.ffmpegMissing': string;
+    'settings.soundLibrary.ffmpegInstall': string;
+    'settings.soundLibrary.ffmpegPreview': string;
     'settings.sounds.groupWindows': string;
     'settings.sounds.groupAuthor': string;
     'settings.sounds.groupCustom': string;

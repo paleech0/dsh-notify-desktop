@@ -94,9 +94,13 @@ function props(overrides: Partial<NotifySectionProps> = {}, activeLocale = 'zh')
 
 let cleanup: (() => void) | undefined
 
+/** How many previews the current test saw. */
+let previewed = 0
+
 afterEach(() => {
   cleanup?.()
   cleanup = undefined
+  previewed = 0
   localStorage.clear()
 })
 
@@ -331,20 +335,20 @@ describe('notification settings section', () => {
   })
 
   it('imports a picked file into the custom library and confirms its deletion', async () => {
-    let library: SoundLibrary = { author: [], custom: [] }
+    let library: SoundLibrary = { author: [], custom: [], ffmpeg: true }
     const imported: string[] = []
     const deleted: string[] = []
     const { container } = await render({
       pickFile: () => Promise.resolve('C:\\sounds\\mine.wav'),
       importSound: (file: string) => {
         imported.push(file)
-        library = { author: [], custom: [{ id: 'custom:mine.wav', name: 'mine', file: 'mine.wav', bytes: 1024 }] }
+        library = { author: [], custom: [{ id: 'custom:mine.wav', name: 'mine', file: 'mine.wav', bytes: 1024 }], ffmpeg: true }
         return Promise.resolve('mine.wav')
       },
       loadLibrary: () => Promise.resolve(library),
       deleteSound: (id: string) => {
         deleted.push(id)
-        library = { author: [], custom: [] }
+        library = { author: [], custom: [], ffmpeg: true }
         return Promise.resolve(true)
       },
     } as Partial<NotifySectionProps>)
@@ -457,6 +461,59 @@ describe('notification settings section', () => {
       .map(node => node.textContent ?? '')
     expect(titles[0]).toBe(en['settings.title'])
     expect(buttons(container, en['settings.test.button'])).toHaveLength(1)
+  })
+
+  it('explains a non-wav sound that cannot play without ffmpeg', async () => {
+    const { container } = await render({
+      loadLibrary: () => Promise.resolve({
+        author: [],
+        custom: [{ id: 'custom:song.mp3', name: 'song', file: 'song.mp3', bytes: 2048 }],
+        ffmpeg: false,
+      }),
+      previewScenario: () => {
+        previewed += 1
+      },
+    } as Partial<NotifySectionProps>)
+    // Open the custom-sounds card: the warning sits beside the import controls.
+    const header = [...container.querySelectorAll('.dsh_notify_collapseHeader')]
+      .find(node => (node.textContent ?? '').includes(zh['settings.soundLibrary.title']))
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.textContent).toContain(zh['settings.soundLibrary.ffmpegMissing'])
+    expect(container.textContent).toContain(zh['settings.soundLibrary.ffmpegInstall'])
+  })
+
+  it('refuses to preview a non-wav sound without ffmpeg and says why', async () => {
+    previewed = 0
+    const { container } = await render({
+      loadLibrary: () => Promise.resolve({
+        author: [],
+        custom: [{ id: 'custom:song.mp3', name: 'song', file: 'song.mp3', bytes: 2048 }],
+        ffmpeg: false,
+      }),
+    } as Partial<NotifySectionProps>)
+    // Pick the imported mp3 for the first visible situation, then preview it.
+    const picker = container.querySelectorAll('.dsh_notify_pickerTrigger')[0] as HTMLButtonElement
+    await act(async () => {
+      picker.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const custom = [...container.querySelectorAll('.dsh_notify_pickerHeader')]
+      .find(node => (node.textContent ?? '').includes(zh['settings.sounds.groupCustom']))
+    await act(async () => {
+      custom?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const option = [...container.querySelectorAll('.dsh_notify_pickerOption')]
+      .find(node => (node.textContent ?? '').includes('song')) as HTMLButtonElement
+    await act(async () => {
+      option?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const preview = buttons(container, zh['settings.scenario.preview'])[0]
+    await act(async () => {
+      preview?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(previewed).toBe(0)
+    expect(container.textContent).toContain(zh['settings.soundLibrary.ffmpegPreview'])
   })
 
   it('follows the DSH locale while the language control is on auto', async () => {

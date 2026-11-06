@@ -75,6 +75,16 @@ export const cssText = `
 .dsh_notify_rowLabel { cursor: pointer; }
 .dsh_notify_error { color: #e5484d; font-size: 12px; line-height: 1.5; }
 .dsh_notify_note { color: #3dd68c; font-size: 12px; line-height: 1.5; }
+/* A missing optional dependency: readable, but unmistakably not a success note. */
+.dsh_notify_warn {
+  color: #f5a524;
+  font-size: 12px;
+  line-height: 1.55;
+  margin-top: 6px;
+  padding-left: 8px;
+  border-left: 2px solid rgba(245, 165, 36, 0.45);
+}
+.dsh_notify_warnHint { opacity: 0.85; margin-top: 2px; }
 .dsh_notify_cacheText { flex: 1 1 auto; font-size: 12px; opacity: 0.8; font-variant-numeric: tabular-nums; }
 .dsh_notify_rowDesc { font-size: 12px; opacity: 0.74; line-height: 1.55; }
 .dsh_notify_rowPrefix { font-size: 11px; opacity: 0.62; }

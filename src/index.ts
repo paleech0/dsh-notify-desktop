@@ -384,15 +384,19 @@ const SOUND_CHOICES: ReadonlyArray<{ readonly id: string; readonly event?: strin
 /** The default event, used for an unknown id. */
 const DEFAULT_EVENT = 'ms-winsoundevent:Notification.Default'
 
-/** Resolved once: the ffmpeg on PATH, or '' when this machine has none. */
+/** The ffmpeg found on PATH; undefined until the first lookup. */
 let ffmpegPath: string | undefined
 
 /**
  * Find ffmpeg on PATH.
+ *
+ * A hit is remembered for the life of the host. A miss is not: the user may
+ * install ffmpeg while DSH runs, and the settings page should start working the
+ * moment they come back to it instead of demanding a restart.
  * @returns the absolute executable path, or '' when there is none.
  */
 function findFfmpeg(): string {
-  if (ffmpegPath !== undefined) return ffmpegPath
+  if (ffmpegPath !== undefined && ffmpegPath !== '') return ffmpegPath
   ffmpegPath = ''
   for (const entry of (process.env['PATH'] ?? '').split(';')) {
     const directory = entry.trim()
@@ -544,6 +548,9 @@ function handleSoundLibrary(req: IncomingMessage, res: ServerResponse): void {
   res.end(JSON.stringify({
     author: listSoundFolder(authorSoundDir(), 'author'),
     custom: listSoundFolder(customSoundDir(), 'custom'),
+    // The settings page needs this to explain why an imported mp3 plays
+    // nothing: without ffmpeg the host has no way to make it a wav.
+    ffmpeg: findFfmpeg() !== '',
   }))
 }
 

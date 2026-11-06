@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { SOUND_ROUTE } from '../src/protocol.ts'
-import { appWindowFocused, notificationTag, pendingTag, playSoundOnly, reminderTag, shortPendingKey, shortReasonKey, showToast } from '../src/client/notifier.ts'
+import { appWindowFocused, notificationTag, pendingTag, playSoundOnly, reminderTag, shortPendingKey, shortReasonKey, showToast, soundLibrary } from '../src/client/notifier.ts'
 import { FOREGROUND_ROUTE } from '../src/protocol.ts'
 
 /** What the fake platform saw. */
@@ -128,6 +128,27 @@ describe('sound-only playback', () => {
       expect(calls).toHaveLength(1)
       expect(calls[0]?.url).toBe(SOUND_ROUTE)
       expect(JSON.parse(calls[0]?.body ?? '{}')).toEqual({ sound: 'file:ding' })
+    } finally {
+      delete (globalThis as { fetch?: unknown }).fetch
+    }
+  })
+})
+
+describe('sound library', () => {
+  it('treats only an explicit false as a missing ffmpeg', async () => {
+    const answer = (payload: unknown): void => {
+      ;(globalThis as { fetch?: unknown }).fetch = (() => Promise.resolve(
+        new Response(JSON.stringify(payload), { status: 200 }),
+      )) as typeof fetch
+    }
+    try {
+      answer({ author: [], custom: [], ffmpeg: false })
+      expect((await soundLibrary()).ffmpeg).toBe(false)
+      // An older host does not send the field: no warning for what it cannot know.
+      answer({ author: [], custom: [] })
+      expect((await soundLibrary()).ffmpeg).toBe(true)
+      answer({ author: [], custom: [], ffmpeg: true })
+      expect((await soundLibrary()).ffmpeg).toBe(true)
     } finally {
       delete (globalThis as { fetch?: unknown }).fetch
     }

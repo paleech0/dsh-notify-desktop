@@ -108,6 +108,14 @@ export interface SoundLibrary {
   readonly author: readonly LibrarySound[]
   /** Sounds the user imported. */
   readonly custom: readonly LibrarySound[]
+  /**
+   * Whether this machine has ffmpeg on its `PATH`.
+   *
+   * Only non-wav sounds need it: everything else is a wav or a built-in, which
+   * the host plays directly. `false` means an imported mp3/m4a/flac would stay
+   * silent, so the settings section warns instead of letting it look broken.
+   */
+  readonly ffmpeg: boolean
 }
 
 /** One sound in a library folder. */

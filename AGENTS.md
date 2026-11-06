@@ -89,6 +89,9 @@ Toast 身份**不许写死**：候选在 `src/aumid.ts`（旧 `electron.app.Deep
   `WMPlayer.OCX` → `state=9 / duration=0`。**沙箱 pwsh 和真 STA `WindowsPowerShell` 结果一致**。别再"优化"回媒体栈。
 - 非 wav 自定义音效：宿主先用 `ffmpeg` 转成 wav（缓存 `%LOCALAPPDATA%\dsh-notify\sounds\<源路径 sha1 前 16 位>.wav`）再交给 SoundPlayer。
   ffmpeg 从 **PATH** 找（`ffmpeg.exe`），**wav 与内置音效库不依赖它**；找不到 → 静音，诊断接口 `media.ffmpeg` 会显示 `null`。
+  **ffmpeg 不进发布包**（44 个文件只有 js/d.ts/wav，见 `npm pack --dry-run`）：装法写在 README 的音效一节（`winget install Gyan.FFmpeg` 优先）。
+  命中结果缓存，**未命中不缓存**——用户中途装好 ffmpeg 后回到设置页即可用；`/dsh-notify/sound-library` 的 `ffmpeg` 字段驱动设置页黄色提示，
+  客户端只把显式 `false` 当缺失（旧宿主不发该字段 → 不误报）。
 - 文件类音效**播放封顶 8 秒**（宿主 `setTimeout` + kill 子进程）；关总开关、切到「仅通知」、或窗口重获焦点，都会立刻掐（`POST /dsh-notify/silence`）。
 - **仅发声路由**（`POST /dsh-notify/sound`）：id 解析与 Toast 完全同源（目录/白名单），播放复用同一套
   SoundPlayer 子进程管线（8 秒封顶 + soundPlayers + silence）。`system:*` 事件音**没有弹窗可挂 `<audio>`**，宿主用
@@ -138,7 +141,7 @@ Toast 身份**不许写死**：候选在 `src/aumid.ts`（旧 `electron.app.Deep
 
 ## 发版
 
-- npm 包名 `dsh-notify-desktop`（0.2.1 于 2026-10-31 发布；0.2.0 于 2026-10-25 发布；0.1.1 于 2026-10-18、0.1.0 于 2026-10-17 发布）。发版走 GitHub Release：`.github/workflows/publish.yml` 用 **OIDC trusted publishing** 发布，不需要 token 或 2FA。
+- npm 包名 `dsh-notify-desktop`（0.2.3 与 0.2.2 于 2026-11-06 发布；0.2.1 于 2026-10-31 发布；0.2.0 于 2026-10-25 发布；0.1.1 于 2026-10-18、0.1.0 于 2026-10-17 发布）。发版走 GitHub Release：`.github/workflows/publish.yml` 用 **OIDC trusted publishing** 发布，不需要 token 或 2FA。
 - npm 包页 Settings → Trusted Publisher 绑定 `paleech0/dsh-notify-desktop` + `publish.yml`（Allow npm publish）。
 - 手动流程：`pnpm run check` → 提交 → `git tag v<version>` 推送 → 在 GitHub 创建 Release（workflow 自动发布；该版本已存在时会自动跳过）。
 - 兜底：网页 staged 发布 + 账号 2FA（security key）批准（2026-10 实测；bypass-2FA token 直接发布 2027-01 起停用）。

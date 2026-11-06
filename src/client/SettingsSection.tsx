@@ -218,6 +218,16 @@ const SCENARIO_EXAMPLE_KEYS: Readonly<Record<NotifyScenario, NotifyKey>> = {
   reminder: 'settings.scenario.reminder',
 }
 
+/**
+ * Whether playing this sound needs ffmpeg.
+ * @param id - a stored sound id.
+ * @returns true for a library file that is not a wav.
+ */
+function needsFfmpeg(id: SoundId): boolean {
+  if (!id.startsWith('custom:') && !id.startsWith('author:')) return false
+  return !id.toLowerCase().endsWith('.wav')
+}
+
 /** The three language choices, in display order. */
 const LANGUAGE_OPTIONS: readonly { readonly value: PluginLanguage; readonly labelKey: NotifyKey }[] = [
   { value: 'auto', labelKey: 'settings.language.auto' },
@@ -240,7 +250,7 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [cache, setCache] = useState<SoundCacheInfo | null>(null)
   const [cacheNote, setCacheNote] = useState<string | null>(null)
-  const [library, setLibrary] = useState<SoundLibrary>({ author: [], custom: [] })
+  const [library, setLibrary] = useState<SoundLibrary>({ author: [], custom: [], ffmpeg: true })
   const [libraryNote, setLibraryNote] = useState<string | null>(null)
   const [soundConfirm, setSoundConfirm] = useState<string | null>(null)
   const [soundsOpen, setSoundsOpen] = useState(false)
@@ -507,6 +517,12 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
                 className="dsh_notify_button dsh_notify_scenarioPreview"
                 disabled={!formEnabled}
                 onClick={() => {
+                  // A non-wav library file with no ffmpeg on the machine plays
+                  // nothing at all; saying why beats a button that looks broken.
+                  if (!library.ffmpeg && needsFfmpeg(settings.sounds[scenario])) {
+                    setError(t('settings.soundLibrary.ffmpegPreview'))
+                    return
+                  }
                   preview(scenario)
                 }}
               >
@@ -610,6 +626,12 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
           <div className="dsh_notify_rowDesc">
             {fmt(t('settings.soundLibrary.desc'), { path: '%LOCALAPPDATA%\\dsh-notify\\custom' })}
           </div>
+          {library.ffmpeg ? null : (
+            <div className="dsh_notify_warn">
+              <div>{t('settings.soundLibrary.ffmpegMissing')}</div>
+              <div className="dsh_notify_warnHint">{t('settings.soundLibrary.ffmpegInstall')}</div>
+            </div>
+          )}
           {libraryNote === null ? null : <div className="dsh_notify_note">{libraryNote}</div>}
 
           <div className="dsh_notify_cacheBlock">
