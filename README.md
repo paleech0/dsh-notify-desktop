@@ -75,6 +75,8 @@ this machine; every change applies immediately.
 | Delivery mode | Toast + sound (default) / Toast only (silent) / Sound only (no toast) |
 | Language | Top-right of the card: **Auto** (follow the DSH language) / **中文** / **English**. Only the plugin's own copy and popup texts change; the rest of DSH keeps its language |
 
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-en.png" width="620" alt="Card 1, Desktop notifications: the language switch in the top-right corner, the master switch, the test notification and the delivery mode">
+
 What "Send a test notification" raises:
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/toast-en.png" width="460" alt="The test toast: DeepSeek Harness · DSH notification test · If you can see this, the toast and the default notification sound both work">
