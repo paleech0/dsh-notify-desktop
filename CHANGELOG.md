@@ -4,6 +4,31 @@ All notable changes to this plugin are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Toasts carry the app's name and icon again after the desktop app moved its Start-menu shortcut to the
+  manifest id (0.2.2-rc.1), which left the previous fallback pointing at an id Windows could no longer
+  resolve — popups degraded to a raw `electron.app.DeepSeek Harness` label with no icon. The host now
+  registers the manifest id itself at startup: `reg.exe` with a fully static argument list writes
+  `DisplayName` ("DeepSeek Harness") and `IconUri` (the bundled `assets/dsh-icon.png`) into
+  `HKCU\SOFTWARE\Classes\AppUserModelId` (the documented registration table for unpackaged apps) — only
+  values that are missing or have drifted, never deleting anything, and a refused write still toasts
+  through whatever the shortcut resolves.
+- The toast identity probe now decides on registry registration first (`Test-Path` over the HKCU/HKLM
+  keys) and only falls back to the `Setting` check when nothing is registered — that check is coarse and
+  reports `Enabled` even for an id nothing resolves anymore. The candidate order flips to the manifest id
+  first, legacy id as fallback; `DSH_NOTIFY_AUMID=id1;id2` still overrides.
+- The diagnostics route reports a new `identity` field: the id ensured this boot, the values written, and
+  success or the failure message.
+
+### Verified
+
+- Windows 11 25H2 (build 26200), DSH desktop 0.2.2-rc.1: unit-level orchestration covered by
+  `tests/identity.spec.ts`; live registration, probe choice and toast display verified manually on the
+  target machine (see the spike notes in `docs/spikes/`).
+
 ## [0.2.1] - 2026-10-31
 
 ### Fixed

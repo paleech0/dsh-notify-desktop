@@ -7,6 +7,16 @@
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="桌面通知与通知情况（上半）">
 
+## 未发布更新
+
+- **Toast 恢复应用名和图标。** 桌面端 0.2.2-rc.1 把开始菜单快捷方式换成了 manifest id，
+  原有的身份自适应还指向旧号 `electron.app.DeepSeek Harness`，Windows 解析不到它——弹窗退化成裸 AUMID 标签、没有图标。
+  现在宿主启动时**自己登记 manifest id**（非打包应用的官方登记机制，reg.exe 静态 argv 写注册表），
+  无论上一个安装器把快捷方式写成哪个号，身份都能解析。
+  探测改为「登记过优先」：先查注册表登记，没有才退回粗过滤的 `Setting` 探测
+  （实测：即使什么解析不到，`Setting` 仍报 Enabled）。
+  诊断接口新增 `identity` 字段，记录本次登记写了什么、成败如何。
+
 ## 0.2.1 更新
 
 - **Toast 身份自适应**：桌面端新版用 `com.deepseek.dsh` 登记通知、旧版用 `electron.app.DeepSeek Harness`。
@@ -167,11 +177,20 @@ dsh.cmd plugin --profile desktop allow-version dsh-notify-desktop@0.2.1 --dsh-ve
 | `POST /dsh-notify/pick-file`、`GET /dsh-notify/foreground` | Windows 选文件框；OS 级焦点判定 |
 | `GET /dsh-notify/questions` | 轮询宿主侧提问队列 |
 
-**Toast 身份自适应。** 桌面端可能用两个 AppUserModelID 之一登记通知：新版是 `com.deepseek.dsh`，
-旧版是 `electron.app.DeepSeek Harness`。宿主不写死：弹 Toast 前先在子进程里探测候选
-（`CreateToastNotifier(...).Setting` 非空即视为已登记），优先使用能显示应用名和图标的旧号，旧号不存在时用新号；
-选中的身份会记进诊断接口。
-需要手动指定时，启动桌面端前设 `DSH_NOTIFY_AUMID=id1;id2`（分号分隔，按顺序尝试）。
+**Toast 身份。** Windows 只有在能解析 Toast 的 AppUserModelID 时才会在弹窗上显示应用名和图标：
+解析要么靠携带该 id 的开始菜单快捷方式，要么靠 `HKCU\SOFTWARE\Classes\AppUserModelId` 注册表项——
+这是微软给非打包 Win32 应用的登记机制，ToastNotificationManagerCompat 和 BurntToast 写的就是这张表。
+桌面端可能用两个 id 之一：manifest id `com.deepseek.dsh`（当前安装器把它写上快捷方式）或
+Electron 默认的 `electron.app.DeepSeek Harness`（旧版安装）。宿主不赌上一个安装器留下了哪个：
+
+- **启动时自己登记 manifest id**（见 `src/identity.ts`）：一个 reg.exe 子进程、全静态 argv，
+  向每用户注册表写入 `DisplayName`（"DeepSeek Harness"）和 `IconUri`（随包的 `assets/dsh-icon.png`）——
+  只补缺失或漂移的值、永不删除；即使登记被系统拒绝，也照旧走快捷方式解析弹 Toast。
+- **弹 Toast 前子进程优先选已登记的身份**：先 `Test-Path` 查 HKCU/HKLM 注册表键——
+  登记才是「身份可解析」的真凭据。没有任何登记时才退回 `Setting` 探测
+  （它是粗过滤器，2026-11-06 实测：对已无人解析的 id 仍报 Enabled），最后兜底旧号。
+  选中的身份记进诊断接口，`identity` 字段还会报告本次启动的登记结果。
+  需要手动指定时，启动桌面端前设 `DSH_NOTIFY_AUMID=id1;id2`（分号分隔，按顺序尝试）。
 
 ## 排查
 
@@ -181,8 +200,9 @@ Windows 通知**不进操作中心**，所以诊断接口是唯一的证据通�
 Invoke-WebRequest http://127.0.0.1:<桌面端端口>/dsh-notify/debug
 ```
 
-返回投影注册状态、客户端最近 40 条上报（每条决定、通道选择、平台结果），以及音效链路状态
-（`media.ffmpeg`、`media.soundPlayers`）。每次宿主弹 Toast 还会记一行
+返回投影注册状态、客户端最近 40 条上报（每条决定、通道选择、平台结果）、音效链路状态
+（`media.ffmpeg`、`media.soundPlayers`），以及本次启动的身份登记结果（`identity`：
+登记的 id、写入的值、成功或失败原因）。每次宿主弹 Toast 还会记一行
 `host-toast aumid=… candidates=…`，可以确认这次用的是哪个通知身份。
 
 ## 开发

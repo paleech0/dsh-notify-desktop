@@ -10,6 +10,17 @@ describe('host toast identity resolution', () => {
     expect(show).toBeGreaterThan(probe)
   })
 
+  it('decides on registry registration first, the Setting probe second', () => {
+    const script = AUMID_RESOLVE_LINES.join('\n')
+    const registry = script.indexOf('Test-Path')
+    const setting = script.indexOf('.Setting')
+    expect(registry).toBeGreaterThanOrEqual(0)
+    expect(setting).toBeGreaterThan(registry)
+    // Both hives: a machine-level registration is as decisive as a per-user one.
+    expect(script).toContain('HKCU:\\SOFTWARE\\Classes\\AppUserModelId\\')
+    expect(script).toContain('HKLM:\\SOFTWARE\\Classes\\AppUserModelId\\')
+  })
+
   it('keeps the identity list out of the script and never hard-codes one id', () => {
     const script = TOAST_SCRIPT_LINES.join('; ')
     expect(AUMID_RESOLVE_LINES.length).toBeGreaterThan(0)

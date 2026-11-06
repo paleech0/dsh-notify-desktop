@@ -1,16 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import {
   AUMID_CANDIDATES,
+  REGISTERED_IDENTITY_ID,
   aumidCandidates,
   parseAumidLine,
 } from '../src/aumid.ts'
 
 describe('toast identity candidates', () => {
-  it('prefers the identity Windows can name and keeps the manifest id as fallback', () => {
+  it('prefers the registered manifest id and keeps the legacy id as fallback', () => {
     expect([...AUMID_CANDIDATES]).toEqual([
-      'electron.app.DeepSeek Harness',
       'com.deepseek.dsh',
+      'electron.app.DeepSeek Harness',
     ])
+  })
+
+  it('registers exactly the id the candidate list prefers', () => {
+    expect(REGISTERED_IDENTITY_ID).toBe(AUMID_CANDIDATES[0])
   })
 
   it('uses an override list in the order it was written', () => {

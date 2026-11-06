@@ -55,6 +55,7 @@
   "files": [
     "lib",
     "sounds",
+    "assets",
     "LICENSE",
     "THIRD-PARTY-NOTICES.md",
     "CHANGELOG.md",
