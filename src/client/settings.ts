@@ -14,9 +14,11 @@ import {
   DEFAULT_BODY_TEMPLATE,
   DEFAULT_TITLE_TEMPLATE,
   NOTIFY_MODES,
+  PLUGIN_LANGUAGES,
   SOUND_IDS,
   type LegacyTextTemplates,
   type NotifyMode,
+  type PluginLanguage,
   type NotifySettings,
   type NotifySounds,
   type NotifyTexts,
@@ -63,6 +65,13 @@ function clampMinutes(value: unknown): number {
 /** One delivery mode, or the default for anything the catalog does not name. */
 function clampMode(value: unknown): NotifyMode {
   return (NOTIFY_MODES as readonly string[]).includes(value as string) ? value as NotifyMode : DEFAULT_SETTINGS.mode
+}
+
+/** One plugin language, or `auto` for anything the catalog does not name. */
+function clampLanguage(value: unknown): PluginLanguage {
+  return (PLUGIN_LANGUAGES as readonly string[]).includes(value as string)
+    ? value as PluginLanguage
+    : DEFAULT_SETTINGS.language
 }
 
 /** A library id: what a folder listing produced, and the only ids not in SOUND_IDS. */
@@ -190,6 +199,7 @@ export function readSettings(storage: SettingsStorage | undefined = ambientStora
       notifyQuestion: clampBoolean(saved['notifyQuestion'], DEFAULT_SETTINGS.notifyQuestion),
       notifyPlanReview: clampBoolean(saved['notifyPlanReview'], DEFAULT_SETTINGS.notifyPlanReview),
       remindAfterMinutes: clampMinutes(saved['remindAfterMinutes']),
+      language: clampLanguage(saved['language']),
     }
   } catch {
     return DEFAULT_SETTINGS
@@ -236,9 +246,13 @@ export function createSettingsStore(storage: SettingsStorage | undefined = ambie
         ...snapshot,
         ...patch,
         mode: patch.mode === undefined ? snapshot.mode : clampMode(patch.mode),
-        remindAfterMinutes: clampMinutes(patch.remindAfterMinutes ?? snapshot.remindAfterMinutes),
-        sounds: clampSounds(patch.sounds ?? snapshot.sounds),
-        texts: clampTexts(patch.texts ?? snapshot.texts),
+        // Only clamp what the patch actually carries: a patch that touches one
+        // boolean used to rebuild both nine-key maps on every keystroke.
+        remindAfterMinutes: patch.remindAfterMinutes === undefined
+          ? snapshot.remindAfterMinutes
+          : clampMinutes(patch.remindAfterMinutes),
+        sounds: patch.sounds === undefined ? snapshot.sounds : clampSounds(patch.sounds),
+        texts: patch.texts === undefined ? snapshot.texts : clampTexts(patch.texts),
         legacyText: patch.legacyText === undefined ? snapshot.legacyText : patch.legacyText,
       }
       snapshot = next

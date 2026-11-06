@@ -15,7 +15,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { NotifyMode, NotifySettings, SoundId, SoundLibrary } from '../types.ts'
+import type { NotifyMode, NotifySettings, PluginLanguage, SoundId, SoundLibrary } from '../types.ts'
 import {
   SCENARIO_IDS,
   type NotifyScenario,
@@ -30,6 +30,7 @@ import { TextManager } from './TextManager.tsx'
 import { scenarioEnabled } from './decision.ts'
 import type { SettingsStore } from './settings.ts'
 import type { TextStore } from './texts.ts'
+import type { ResolvedLanguage } from './language.ts'
 
 /** Human-readable byte size for the cache row. */
 function formatBytes(bytes: number): string {
@@ -62,6 +63,14 @@ export interface NotifySectionInjected {
   cacheInfo: () => Promise<SoundCacheInfo | null>
   /** Empty the transcoded-wav cache. */
   clearCache: () => Promise<SoundCacheInfo | null>
+  /** Translate one key in the plugin's own language (not the DSH locale seat). */
+  tr: (key: NotifyKey, params?: Record<string, string>) => string
+  /** The language the plugin copy uses right now. */
+  language: () => ResolvedLanguage
+  /** Pin the plugin language. */
+  setLanguage: (value: PluginLanguage) => void
+  /** Re-render when the effective language changes (the store or the DSH locale). */
+  subscribeLanguage: (listener: () => void) => () => void
 }
 
 /** Full section props: runtime share + injected face + the locale seat. */
@@ -209,6 +218,13 @@ const SCENARIO_EXAMPLE_KEYS: Readonly<Record<NotifyScenario, NotifyKey>> = {
   reminder: 'settings.scenario.reminder',
 }
 
+/** The three language choices, in display order. */
+const LANGUAGE_OPTIONS: readonly { readonly value: PluginLanguage; readonly labelKey: NotifyKey }[] = [
+  { value: 'auto', labelKey: 'settings.language.auto' },
+  { value: 'zh', labelKey: 'settings.language.zh' },
+  { value: 'en', labelKey: 'settings.language.en' },
+]
+
 /**
  * The notification settings section.
  * @param props - section props supplied by the settings slot.
@@ -216,6 +232,10 @@ const SCENARIO_EXAMPLE_KEYS: Readonly<Record<NotifyScenario, NotifyKey>> = {
  */
 export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
   const settings = useSyncExternalStore(props.store.subscribe, props.store.getSnapshot)
+  // The plugin's own language: a store choice, or the DSH locale while it is
+  // "auto". Subscribing to both is what makes the toggle (and a DSH language
+  // switch) repaint the section without a reload.
+  const language = useSyncExternalStore(props.subscribeLanguage, props.language)
   const texts = useSyncExternalStore(props.texts.subscribe, props.texts.getSnapshot)
   const [error, setError] = useState<string | null>(null)
   const [cache, setCache] = useState<SoundCacheInfo | null>(null)
@@ -225,7 +245,7 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
   const [soundConfirm, setSoundConfirm] = useState<string | null>(null)
   const [soundsOpen, setSoundsOpen] = useState(false)
   const [textsOpen, setTextsOpen] = useState(false)
-  const t = props.t
+  const t = props.tr
   const readCache = props.cacheInfo
   const wipeCache = props.clearCache
   const readLibrary = props.loadLibrary
@@ -340,8 +360,33 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
   return (
     <section className="dsh_notify_section">
       <div className="dsh_notify_card">
-        <div className="dsh_notify_cardTitle">{t('settings.title')}</div>
-        <div className="dsh_notify_cardDesc">{t('settings.subtitle')}</div>
+        <div className="dsh_notify_cardHead">
+          <div className="dsh_notify_cardHeadText">
+            <div className="dsh_notify_cardTitle">{t('settings.title')}</div>
+            <div className="dsh_notify_cardDesc">{t('settings.subtitle')}</div>
+          </div>
+          <div
+            className="dsh_notify_langSwitch"
+            role="group"
+            aria-label={t('settings.language.label')}
+            data-language={language}
+          >
+            {LANGUAGE_OPTIONS.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                className="dsh_notify_langOption"
+                aria-pressed={settings.language === option.value}
+                title={option.value === 'auto' ? t('settings.language.autoHint') : undefined}
+                onClick={() => {
+                  props.setLanguage(option.value)
+                }}
+              >
+                {t(option.labelKey)}
+              </button>
+            ))}
+          </div>
+        </div>
         <Toggle
           id="dsh-notify-enabled"
           checked={settings.enabled}

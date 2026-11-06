@@ -2,11 +2,12 @@
 import { act } from 'react-dom/test-utils'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { NotifySettings, SoundLibrary } from '../src/types.ts'
+import type { NotifySettings, PluginLanguage, SoundLibrary } from '../src/types.ts'
 import { DEFAULT_SETTINGS } from '../src/types.ts'
 import { emptyTextLibrary, type NotifyScenario, type TextLibrary, type TextTemplate } from '../src/scenarios.ts'
 import { NotifySettingsSection, type NotifySectionProps } from '../src/client/SettingsSection.tsx'
-import { zh } from '../src/client/locales.ts'
+import { createTranslator, resolveLanguage } from '../src/client/language.ts'
+import { en, zh } from '../src/client/locales.ts'
 import { createSettingsStore } from '../src/client/settings.ts'
 import type { TextDraft, TextSaveOutcome, TextStore } from '../src/client/texts.ts'
 
@@ -60,8 +61,9 @@ function fakeTexts(initial: Partial<Record<NotifyScenario, TextTemplate[]>> = {}
 }
 
 /** The section props a slot would inject, with the runtime share stubbed. */
-function props(overrides: Partial<NotifySectionProps> = {}): NotifySectionProps {
+function props(overrides: Partial<NotifySectionProps> = {}, activeLocale = 'zh'): NotifySectionProps {
   const store = createSettingsStore(undefined)
+  const language = (): 'zh' | 'en' => resolveLanguage(store.getSnapshot().language, activeLocale)
   return {
     store,
     set: (patch: Partial<NotifySettings>) => {
@@ -76,6 +78,12 @@ function props(overrides: Partial<NotifySectionProps> = {}): NotifySectionProps 
     deleteSound: () => Promise.resolve(true),
     cacheInfo: () => Promise.resolve({ files: 0, bytes: 0 }),
     clearCache: () => Promise.resolve({ files: 0, bytes: 0 }),
+    tr: createTranslator(language),
+    language,
+    setLanguage: (value: PluginLanguage) => {
+      store.update({ language: value })
+    },
+    subscribeLanguage: (listener: () => void) => store.subscribe(listener),
     t,
     ...overrides,
   } as unknown as NotifySectionProps
@@ -93,7 +101,7 @@ afterEach(() => {
 })
 
 /** Render the section into a fresh container. */
-async function render(overrides: Partial<NotifySectionProps> = {}) {
+async function render(overrides: Partial<NotifySectionProps> = {}, activeLocale = 'zh') {
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
@@ -103,7 +111,7 @@ async function render(overrides: Partial<NotifySectionProps> = {}) {
     })
     container.remove()
   }
-  const all = props(overrides)
+  const all = props(overrides, activeLocale)
   await act(async () => {
     root.render(<NotifySettingsSection {...all} />)
   })
@@ -437,5 +445,29 @@ describe('notification settings section', () => {
       all.set({ enabled: false })
     })
     expect((container.querySelector('input[type="checkbox"]') as HTMLInputElement).checked).toBe(false)
+  })
+
+  it('pins the plugin copy to English from the language control', async () => {
+    const { container } = await render()
+    const english = buttons(container, 'English')[0]
+    await act(async () => {
+      english?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const titles = [...container.querySelectorAll('.dsh_notify_cardTitle')]
+      .map(node => node.textContent ?? '')
+    expect(titles[0]).toBe(en['settings.title'])
+    expect(buttons(container, en['settings.test.button'])).toHaveLength(1)
+  })
+
+  it('follows the DSH locale while the language control is on auto', async () => {
+    const { container } = await render({}, 'en')
+    const titles = [...container.querySelectorAll('.dsh_notify_cardTitle')]
+      .map(node => node.textContent ?? '')
+    expect(titles[0]).toBe(en['settings.title'])
+    // The stored choice stays auto, which is what the pressed segment shows.
+    const pressed = [...container.querySelectorAll('.dsh_notify_langOption')]
+      .filter(node => node.getAttribute('aria-pressed') === 'true')
+      .map(node => node.textContent ?? '')
+    expect(pressed).toEqual([en['settings.language.auto']])
   })
 })

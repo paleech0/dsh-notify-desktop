@@ -6,7 +6,7 @@
 
 1. **不改 harness**。本插件只用公开 seam：session projection、session list、settings slot、locale、webServer route。
    不修改 `<DSH desktop install>` 下任何文件，不往官方转发事件表里加事件，不给外壳 `process.send` 发自定义 type（白名单外 = 外壳 SIGTERM 打死宿主）。
-2. **peer 依赖精确对齐运行时**。运行时 = `<DSH desktop install>`（**0.2.1-rc.5**；devDependencies 仍锁 0.2.0-rc.2 仅供构建/类型检查，且 0.2.1 运行时镜像不带 `.d.ts`）。装/升任何 `@deepseek-ai/*` 前
+2. **peer 依赖精确对齐运行时**。运行时 = `<DSH desktop install>`（**0.2.2-rc.1**；devDependencies 仍锁 0.2.0-rc.2 仅供构建/类型检查，且 0.2.2 运行时镜像不带 `.d.ts`）。装/升任何 `@deepseek-ai/*` 前
    用 `"<DSH desktop install>\resources\runtime\cli\bin\dsh.cmd" --version` 核对；对不上就停手问人。
 3. **`lib/` 必须随源码提交**（profile 以链接方式装配，不发 npm 包）。
 4. **`pnpm run check` 必须全绿**（typecheck + vitest + build）才能提交。
@@ -51,7 +51,12 @@ Toast 身份**不许写死**：候选在 `src/aumid.ts`（旧 `electron.app.Deep
 **不要再引入"4 组音效"的概念**：音效和文本都按 9 个情况分别存（`settings.sounds` / `settings.texts`）。
 
 - 设置模型：`enabled`（总开关）× `mode: 'both' | 'notify' | 'sound'` × `sounds[scenario]` × `texts[scenario]`
-  （`'default'` 或磁盘模板 id）。决策返回 `scenario + sound`，**客户端按 mode 分流**：
+  （`'default'` 或磁盘模板 id）× `language: 'auto' | 'zh' | 'en'`。
+- **插件自带语言**（0.2.2 起）：`language` 只影响插件自己的文案与弹窗文本 —— `auto` 跟随 DSH 界面语言
+  （只有 zh/en 两本字典，其它 DSH 语言读 en），`zh`/`en` 钉死。翻译走 `src/client/language.ts` 的
+  `createTranslator`，**不要再用 `ctx.locale.bind(NS)` 当渲染文案**（那个只跟 DSH 语言，会让切换失效）；
+  字典仍要 `ctx.locale.register` 注册，供 slot 的 locale 座位与导航标签使用。
+- 决策返回 `scenario + sound`，**客户端按 mode 分流**：
   `sound` → 仅发声路由；`notify` → 静音 Toast；`both` → 照旧。`scenarioSound()` 在 `notify` 下统一返回 `'silent'`。
 - 迁移（都在 `readSettings` 里、不换存储键）：`soundEnabled=false` → `mode:'notify'`；
   旧 4 组 `sounds.finished/error/attention/reminder` 按组下发到 9 个情况；旧全局 `titleTemplate/bodyTemplate`
@@ -125,7 +130,8 @@ Toast 身份**不许写死**：候选在 `src/aumid.ts`（旧 `electron.app.Deep
     src/scenarios.ts      两端共享的 9 个情况与文本模板模型
     src/protocol.ts       两端共享的线上词汇（路由与请求头）
     src/client/…          client 半侧：决策 / 通知 / 催办 / 跳转 / 设置段 / 文案 / 样式 /
-                          文本库缓存（texts.ts）、文本选择器与管理器（TextPicker/TextManager）
+                          文本库缓存（texts.ts）、文本选择器与管理器（TextPicker/TextManager）、
+                          插件语言解析与翻译（language.ts）
     tests/                vitest（决策、催办、投影、通知器、跳转、设置段）
     docs/spikes/          实测记录（E1 通道、S2 托盘角标）
     docs/acceptance/      端到端验收记录

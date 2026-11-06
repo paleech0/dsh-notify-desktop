@@ -106,7 +106,7 @@ export declare function pickSoundFile(): Promise<string>;
  * renderer's own signal keeps deciding.
  * @returns true when the foreground window belongs to this app.
  */
-export declare function appWindowFocused(): Promise<boolean>;
+export declare function appWindowFocused(fresh?: boolean): Promise<boolean>;
 /**
  * Read the sound library: what the plugin ships and what the user imported.
  * @returns both lists, or an empty library when the host is unreachable.

@@ -25,6 +25,49 @@ export const cssText = `
 }
 .dsh_notify_cardTitle { font-weight: 600; font-size: 13px; }
 .dsh_notify_cardDesc { font-size: 12px; opacity: 0.78; line-height: 1.55; }
+/*
+ * Card header: title and description on the left, the plugin's own language
+ * switch on the right. It wraps instead of squeezing the title on a narrow
+ * settings panel.
+ */
+.dsh_notify_cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.dsh_notify_cardHeadText { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
+.dsh_notify_langSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28));
+  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.06));
+  flex: 0 0 auto;
+}
+.dsh_notify_langOption {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 3px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.dsh_notify_langOption:hover { opacity: 1; background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.14)); }
+.dsh_notify_langOption[aria-pressed='true'] {
+  opacity: 1;
+  font-weight: 600;
+  background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.18));
+  box-shadow: inset 0 0 0 1px var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.32));
+}
 .dsh_notify_row { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; }
 .dsh_notify_row input[type='checkbox'] { margin-top: 2px; }
 .dsh_notify_rowText { display: flex; flex-direction: column; gap: 2px; }

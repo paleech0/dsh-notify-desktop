@@ -32,6 +32,7 @@ import {
   scenarioSound,
 } from './decision.ts'
 import { NS, en, fmt, zh } from './locales.ts'
+import { createTranslator, resolveLanguage, type ResolvedLanguage } from './language.ts'
 import { activateSession, focusWindowRequest } from './navigate.ts'
 import {
   ensureNotificationPermission,
@@ -52,7 +53,7 @@ import {
   shortScenarioKey,
   showToast,
 } from './notifier.ts'
-import type { PendingKind } from '../types.ts'
+import type { PendingKind, PluginLanguage } from '../types.ts'
 import { DEFAULT_BODY_TEMPLATE, DEFAULT_TEXT_CHOICE, DEFAULT_TITLE_TEMPLATE } from '../types.ts'
 import {
   SCENARIO_IDS,
@@ -69,7 +70,6 @@ import {
   NOTIFY_PROJECTION_KEY,
   askKey,
   isFresh,
-  liveRequestIds,
   newPending,
   recentlyKeyed,
   turnAdvance,
@@ -122,9 +122,22 @@ export function apply(ctx: ClientContext): void {
     report('notification permission=' + permission)
   })
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-notify-desktop: dictionaries')
-  const t = ctx.locale.bind(NS)
-
   const store = createSettingsStore()
+  /** The DSH interface locale id, which the `auto` language choice follows. */
+  const activeLocale = (): string => {
+    try {
+      return ctx.locale.getSnapshot().active
+    } catch {
+      // A locale service that cannot answer yet reads as English, which is the
+      // documented fallback for every locale this plugin does not ship.
+      return 'en'
+    }
+  }
+  /** The language the plugin's own copy uses right now. */
+  const language = (): ResolvedLanguage => resolveLanguage(store.getSnapshot().language, activeLocale())
+  // Read through this instead of ctx.locale.bind: the section's toggle pins the
+  // plugin's language without touching the rest of the app.
+  const t = createTranslator(language)
   const texts = createTextStore()
   const set = (patch: Parameters<typeof store.update>[0]): void => {
     store.update(patch)
@@ -367,12 +380,27 @@ export function apply(ctx: ClientContext): void {
     || hostFocused
     || Date.now() - lastFocusAt < FOCUS_GRACE_MS
 
-  /** Ask the host for the OS-level answer and remember it. */
-  const refreshHostFocus = (): void => {
-    void appWindowFocused().then(focused => {
+  /**
+   * Ask the host for the OS-level answer and remember it.
+   * @param fresh - bypass the host's cache (the window just lost focus).
+   */
+  const refreshHostFocus = (fresh = false): void => {
+    void appWindowFocused(fresh).then(focused => {
       hostFocused = focused
     }, () => undefined)
   }
+
+  /**
+   * The name a notification shows for one session.
+   *
+   * The workspace (recognisable) rather than the session's DSH-generated
+   * one-word title. Computed only when a toast is actually composed.
+   * @param summary - the session row.
+   * @returns the display name, or '' when the row carries none.
+   */
+  const toastNameOf = (
+    summary: { readonly cwd?: string; readonly displayTitle?: string; readonly title?: string },
+  ): string => workspaceName(summary.cwd) || summary.displayTitle || summary.title || ''
 
   const tick = (): void => {
     const state = sessions.list.getSnapshot()
@@ -385,20 +413,19 @@ export function apply(ctx: ClientContext): void {
       const summary = state.byId[id]
       if (summary === undefined) continue
       const projection = summary.projectionValues?.[NOTIFY_PROJECTION_KEY]
-      // The toast names the workspace (recognisable) rather than the session's
-      // DSH-generated one-word title.
-      const toastName = workspaceName(summary.cwd) || summary.displayTitle || summary.title || ''
+      // The cheap shape is the whole comparison key. Building the pending id
+      // list and the workspace name for every session on every tick was the
+      // bulk of this loop's work, and neither is needed until something changed
+      // or a toast is actually composed.
       const shape = projection === undefined
         ? 'absent'
         : projection.turn + '/' + projection.reason + '/pending:' + String(projection.pending.length)
-      const ownList = (projection?.pending ?? []).map(entry => entry.kind + ':' + entry.requestId).join('|')
-      const shapeWithPending = shape + ' own=[' + ownList + ']'
       // Only sessions that actually carry state are reported: the host keeps a
       // bounded ring of client lines, and a scan of every idle session would
       // evict the interesting ones.
-      const interesting = projection !== undefined || ownList !== ''
-      if (interesting && seenShape.get(id) !== shapeWithPending) {
-        seenShape.set(id, shapeWithPending)
+      if (projection !== undefined && seenShape.get(id) !== shape) {
+        seenShape.set(id, shape)
+        const ownList = projection.pending.map(entry => entry.kind + ':' + entry.requestId).join('|')
         report('scan ' + id.slice(0, 12) + ' projection=' + shape
           + ' own=[' + ownList + '] focused=' + String(focused))
       }
@@ -432,7 +459,7 @@ export function apply(ctx: ClientContext): void {
         if (decision !== null && reason !== undefined) {
           const scenario = scenarioOfReason(reason)
           const parts = {
-            workspace: toastName,
+            workspace: toastNameOf(summary),
             status: t(shortScenarioKey(scenario)),
             body: plainSummary(projection.body),
           }
@@ -460,11 +487,11 @@ export function apply(ctx: ClientContext): void {
       // reach the session log and arrive through the host's queue instead.
       const pending = projection?.pending ?? []
       const previous = knownPending.get(id)
-      const live = liveRequestIds(pending)
       if (previous === undefined) {
         // First observation seeds the baseline: history is never re-notified.
-        knownPending.set(id, live)
+        const seeded = new Set<string>()
         for (const entry of pending) {
+          seeded.add(entry.requestId)
           waits.set(waitKey(id, entry.requestId), {
             key: waitKey(id, entry.requestId),
             sessionId: id,
@@ -475,12 +502,15 @@ export function apply(ctx: ClientContext): void {
             reminded: false,
           })
         }
+        knownPending.set(id, seeded)
         continue
       }
       // Same staleness rule as turns: an ask the fold only just caught up with
       // was already answered in reality, so it must not toast.
       const askIsFresh = projection !== undefined && isFresh(projection.updatedAt, now)
-      for (const entry of newPending(previous, pending)) {
+      const arrivals = newPending(previous, pending)
+      for (const entry of arrivals) previous.add(entry.requestId)
+      for (const entry of arrivals) {
         if (!askIsFresh) {
           report('pending ' + entry.kind + ' ' + entry.requestId + ' (projection) stale -> suppressed')
           continue
@@ -492,16 +522,20 @@ export function apply(ctx: ClientContext): void {
           summary: entry.summary,
           firstSeenAt: now,
           source: 'projection',
-          label: toastName,
+          label: toastNameOf(summary),
         })
       }
-      for (const requestId of [...previous]) {
-        if (!live.has(requestId)) {
+      // A departure is the only way the observed set can outgrow the projection,
+      // so the live-id set is built only when that actually happened.
+      if (previous.size !== pending.length) {
+        const live = new Set<string>()
+        for (const entry of pending) live.add(entry.requestId)
+        for (const requestId of previous) {
+          if (live.has(requestId)) continue
           previous.delete(requestId)
           waits.delete(waitKey(id, requestId))
         }
       }
-      for (const requestId of live) previous.add(requestId)
       knownPending.set(id, previous)
     }
 
@@ -509,6 +543,7 @@ export function apply(ctx: ClientContext): void {
     const liveSessions = new Set<string>(state.ids)
     for (const id of [...observedTurn.keys()]) if (!liveSessions.has(id)) observedTurn.delete(id)
     for (const id of [...knownPending.keys()]) if (!liveSessions.has(id)) knownPending.delete(id)
+    for (const id of [...seenShape.keys()]) if (!liveSessions.has(id)) seenShape.delete(id)
     for (const entry of [...waits.values()]) if (!liveSessions.has(entry.sessionId)) waits.delete(entry.key)
   }
 
@@ -687,8 +722,9 @@ export function apply(ctx: ClientContext): void {
     }
     const onBlur = (): void => {
       // The document may have lost focus to another view of this same window,
-      // so ask the OS before believing that the user walked away.
-      refreshHostFocus()
+      // so ask the OS before believing that the user walked away — and ask for a
+      // fresh answer, because the cached one predates the switch.
+      refreshHostFocus(true)
     }
     window.addEventListener('focus', onFocus)
     window.addEventListener('blur', onBlur)
@@ -750,6 +786,19 @@ export function apply(ctx: ClientContext): void {
       deleteSound,
       cacheInfo: soundCacheInfo,
       clearCache: clearSoundCache,
+      tr: t,
+      language,
+      setLanguage: (value: PluginLanguage) => {
+        set({ language: value })
+      },
+      subscribeLanguage: (listener: () => void) => {
+        const offStore = store.subscribe(listener)
+        const offLocale = ctx.locale.subscribe(listener)
+        return () => {
+          offStore()
+          offLocale()
+        }
+      },
     }),
   }, NotifySettingsSection))
 }

@@ -145,6 +145,10 @@ export function TextManager(props: TextManagerProps): JSX.Element {
       {props.scenarios.map(scenario => {
         const templates = props.library[scenario]
         const editing = editor !== null && editor.scenario === scenario ? editor : null
+        // One preview composition per group: the list used to rebuild it for
+        // every saved template, which is what made typing in the editor redo
+        // this work up to 27 times per keystroke.
+        const parts = props.partsOf(scenario)
         return (
           <div className="dsh_notify_textGroup" key={scenario}>
             <div className="dsh_notify_textGroupHeader">
@@ -173,7 +177,7 @@ export function TextManager(props: TextManagerProps): JSX.Element {
                 {templates.map(template => (
                   <li className="dsh_notify_textItem" key={template.id}>
                     <span className="dsh_notify_textItemName" title={template.name}>{template.name}</span>
-                    <span className="dsh_notify_textItemBody" title={template.body}>{renderBody(template.body, props.partsOf(scenario), '')}</span>
+                    <span className="dsh_notify_textItemBody" title={template.body}>{renderBody(template.body, parts, '')}</span>
                     <button
                       type="button"
                       className="dsh_notify_iconButton"

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { SOUND_ROUTE } from '../src/protocol.ts'
-import { notificationTag, pendingTag, playSoundOnly, reminderTag, shortPendingKey, shortReasonKey, showToast } from '../src/client/notifier.ts'
+import { appWindowFocused, notificationTag, pendingTag, playSoundOnly, reminderTag, shortPendingKey, shortReasonKey, showToast } from '../src/client/notifier.ts'
+import { FOREGROUND_ROUTE } from '../src/protocol.ts'
 
 /** What the fake platform saw. */
 interface FakePlatform {
@@ -127,6 +128,23 @@ describe('sound-only playback', () => {
       expect(calls).toHaveLength(1)
       expect(calls[0]?.url).toBe(SOUND_ROUTE)
       expect(JSON.parse(calls[0]?.body ?? '{}')).toEqual({ sound: 'file:ding' })
+    } finally {
+      delete (globalThis as { fetch?: unknown }).fetch
+    }
+  })
+})
+
+describe('foreground probe', () => {
+  it('asks for a cached answer by default and a fresh one when told to', async () => {
+    const urls: string[] = []
+    ;(globalThis as { fetch?: unknown }).fetch = ((url: string | URL) => {
+      urls.push(String(url))
+      return Promise.resolve(new Response(JSON.stringify({ focused: true }), { status: 200 }))
+    }) as typeof fetch
+    try {
+      expect(await appWindowFocused()).toBe(true)
+      expect(await appWindowFocused(true)).toBe(true)
+      expect(urls).toEqual([FOREGROUND_ROUTE, FOREGROUND_ROUTE + '?fresh=1'])
     } finally {
       delete (globalThis as { fetch?: unknown }).fetch
     }

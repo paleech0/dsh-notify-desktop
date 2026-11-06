@@ -78,7 +78,9 @@ export function SoundPicker(props: SoundPickerProps): JSX.Element {
     }
   }, [open])
 
-  const sections: readonly PickerSection[] = [
+  // The three sections carry twenty labels and two linear library lookups;
+  // building them while the panel is closed was pure waste on every render.
+  const sections: readonly PickerSection[] = !open ? [] : [
     {
       id: 'windows',
       label: props.t('settings.sounds.groupWindows'),

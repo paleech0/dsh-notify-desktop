@@ -131,8 +131,17 @@ const soundPlayers = new Set<ChildProcess>()
 /** Cached "is our window the foreground window?" answer and its timestamp. */
 let foregroundAnswer: { at: number; focused: boolean } | undefined
 
-/** How long one foreground answer is reused (the client polls every two seconds). */
-const FOREGROUND_TTL_MS = 1500
+/**
+ * How long one foreground answer is reused.
+ *
+ * The client polls every two seconds, so a TTL below that makes every poll
+ * spawn a PowerShell child that compiles its C# helper on the spot. 2.5s lets
+ * two consecutive polls share one answer; the staleness that buys is bounded by
+ * the TTL and only matters while the document reports no focus. A caller that
+ * knows the answer just changed (the window lost focus) asks for a fresh read
+ * instead of the cache.
+ */
+const FOREGROUND_TTL_MS = 2500
 
 /**
  * Whether this application's own window is the OS foreground window.
@@ -145,9 +154,11 @@ const FOREGROUND_TTL_MS = 1500
  * signal keeps deciding.
  * @returns true when the foreground window belongs to this application.
  */
-function appWindowFocused(): Promise<boolean> {
+function appWindowFocused(fresh = false): Promise<boolean> {
   const cached = foregroundAnswer
-  if (cached !== undefined && Date.now() - cached.at < FOREGROUND_TTL_MS) return Promise.resolve(cached.focused)
+  if (!fresh && cached !== undefined && Date.now() - cached.at < FOREGROUND_TTL_MS) {
+    return Promise.resolve(cached.focused)
+  }
   // The C# definition sits inside a single-quoted PowerShell string: it holds
   // only double quotes, so neither side needs escaping.
   const definition = '[DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow(); '
@@ -193,7 +204,10 @@ function handleForeground(req: IncomingMessage, res: ServerResponse): void {
     res.end()
     return
   }
-  void appWindowFocused().then(focused => {
+  // `?fresh=1` skips the cache: the client sends it when the window just lost
+  // focus, which is exactly the moment a cached "still focused" would be wrong.
+  const fresh = (req.url ?? '').includes('fresh=1')
+  void appWindowFocused(fresh).then(focused => {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
     res.end(JSON.stringify({ focused }))
   }, () => {
@@ -223,7 +237,9 @@ function handleSilence(req: IncomingMessage, res: ServerResponse): void {
     }
   }
   soundPlayers.clear()
-  note('silence: stopped ' + String(stopped) + ' sound(s)')
+  // The client posts here on every focus gain; logging an empty stop would push
+  // the interesting lines out of the bounded diagnostics ring.
+  if (stopped > 0) note('silence: stopped ' + String(stopped) + ' sound(s)')
   res.writeHead(204)
   res.end()
 }
@@ -1115,8 +1131,18 @@ function handleReport(req: IncomingMessage, res: ServerResponse): void {
 
 /** The loose face of the projection registry this probe reads. */
 interface RegistryProbe {
-  stateOf?(session: unknown, key: string): unknown
   snapshot?(session: unknown, values?: readonly string[]): { values?: Record<string, unknown> } | undefined
+}
+
+/**
+ * The registration handle the 0.2.2 runtime returns from `register`.
+ *
+ * The published devDependency types still describe the 0.2.0 shape (a disposer),
+ * so the handle is read through this local face: awaiting the registration is
+ * the documented replacement for the deprecated `stateOf(session, key)`.
+ */
+interface ProjectionHandleFace {
+  stateOf(session: unknown): unknown
 }
 
 /** The loose face of the host session list this probe reads. */
@@ -1132,7 +1158,12 @@ interface SessionsProbe {
  * @param req - the raw request.
  * @param res - the raw response.
  */
-function handleDebug(ctx: Context, req: IncomingMessage, res: ServerResponse): void {
+function handleDebug(
+  handle: ProjectionHandleFace | undefined,
+  ctx: Context,
+  req: IncomingMessage,
+  res: ServerResponse,
+): void {
   if (req.method !== 'GET') {
     res.writeHead(405)
     res.end()
@@ -1148,13 +1179,17 @@ function handleDebug(ctx: Context, req: IncomingMessage, res: ServerResponse): v
     for (const session of sessions.slice(0, 3)) {
       const row: Record<string, unknown> = { id: String((session as { id?: unknown }).id) }
       try {
-        row['notifyState'] = registry?.stateOf?.(session, 'notify') === undefined ? 'absent' : 'present'
-        row['titleState'] = registry?.stateOf?.(session, 'title') === undefined ? 'absent' : 'present'
+        row['notifyState'] = handle?.stateOf(session) === undefined ? 'absent' : 'present'
       } catch (error) {
         row['notifyState'] = 'error: ' + String(error)
       }
       try {
-        row['snapshotKeys'] = Object.keys(registry?.snapshot?.(session)?.values ?? {})
+        // The snapshot is the non-deprecated read face; the title unit belongs to
+        // another plugin, so its presence is read off the keys rather than asked
+        // for by name.
+        const keys = Object.keys(registry?.snapshot?.(session)?.values ?? {})
+        row['snapshotKeys'] = keys
+        row['titleState'] = keys.includes('title') ? 'present' : 'absent'
       } catch (error) {
         row['snapshotKeys'] = 'error: ' + String(error)
       }
@@ -1176,11 +1211,18 @@ function handleDebug(ctx: Context, req: IncomingMessage, res: ServerResponse): v
 }
 
 /**
- * Register the projection and the focus route.
+ * Register the projection and the routes.
+ *
+ * Async on purpose: 0.2.2 returns an awaitable registration handle, and awaiting
+ * it is the documented replacement for the deprecated `stateOf(session, key)`
+ * read. The owning fiber still releases the registration on unload.
  * @param ctx - host cordis context.
  */
-export function apply(ctx: Context): void {
-  ctx.sessionProjections.register(notifyProjection())
+export async function apply(ctx: Context): Promise<void> {
+  // The 0.2.2 runtime returns a callable thenable; the 0.2.0 types still say
+  // "disposer", hence the cast.
+  const registration = ctx.sessionProjections.register(notifyProjection()) as unknown as Promise<ProjectionHandleFace>
+  const handle = await registration
   // Every question reaches this host-side global listener: the ask() service
   // fires the waterfall in the asking agent's scope, and only a global listener
   // sees scopes other than its own. Nothing here answers the question.
@@ -1250,7 +1292,7 @@ export function apply(ctx: Context): void {
         kind: 'exact',
         path: DEBUG_ROUTE,
         handler: (req, res) => {
-          handleDebug(ctx, req, res)
+          handleDebug(handle, ctx, req, res)
         },
       }),
       'dsh-notify-desktop: diagnostics route',

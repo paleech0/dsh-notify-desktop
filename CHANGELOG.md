@@ -4,6 +4,37 @@ All notable changes to this plugin are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-11-06
+
+### Added
+
+- The plugin has its own interface language. A segmented control in the top-right corner of the settings
+  card switches the plugin's copy and every popup text between Chinese and English, or leaves it on
+  **Auto** to follow the DSH interface language. The choice is stored with the other settings
+  (`language: 'auto' | 'zh' | 'en'`, default `auto`); nothing else in DSH changes.
+- `package.json` declares the top-level `types` entry next to the `exports` types, so TypeScript
+  consumers using the classic `node` module resolution find the declarations.
+
+### Changed
+
+- The host half awaits the projection registration and reads state through the returned handle — the
+  0.2.2 API; the diagnostics route takes the title unit's presence from the snapshot keys instead of the
+  deprecated `stateOf(session, key)`.
+- Efficiency, no behaviour change: the foreground-focus answer is cached for 2.5s (longer than one client
+  poll) and the client asks for a fresh read when the window loses focus, so an unfocused window no longer
+  spawns a PowerShell child every two seconds; the session tick compares a cheap shape before composing
+  diagnostic strings, drops its per-session entry when a session disappears, and rebuilds the pending-id
+  set only when an ask actually left; settings writes clamp only the fields a patch carries; the text
+  manager composes one preview per group instead of one per saved text; the sound picker builds its panel
+  only while open; the silence route logs only real stops.
+
+### Verified
+
+- DSH desktop 0.2.2-rc.1 on Windows 11 25H2 (build 26200): the plugin loads, the projection reports
+  `notifyState=present`, host toasts are raised, the diagnostics and text-template routes answer, and the
+  settings page switches between Chinese and English. See
+  [acceptance](docs/acceptance/2026-11-06-bilingual-ui.md).
+
 ## [0.2.1] - 2026-10-31
 
 ### Fixed

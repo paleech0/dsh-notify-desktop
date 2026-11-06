@@ -101,6 +101,13 @@ describe('notification settings store', () => {
     expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ remindAfterMinutes: 'x' }) })).remindAfterMinutes).toBe(10)
   })
 
+  it('defaults the plugin language to auto and rejects unknown values', () => {
+    expect(readSettings(memory()).language).toBe('auto')
+    expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ language: 'en' }) })).language).toBe('en')
+    expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ language: 'zh' }) })).language).toBe('zh')
+    expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ language: 'klingon' }) })).language).toBe('auto')
+  })
+
   it('clamps writes the same way reads do, and can clear legacyText', () => {
     const store = createSettingsStore(memory())
     store.update({ texts: { ...DEFAULT_SETTINGS.texts, error: 'not-a-template' } })

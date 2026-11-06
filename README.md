@@ -6,18 +6,17 @@ Windows toast notifications for the DSH desktop app. A session finishes, fails, 
 something — you get a native notification with a sound and a piece of text chosen for that situation, and
 clicking it brings the DSH window back to the front.
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="Desktop notifications and the situation list (top half)">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-en.png" width="620" alt="Card 1, Desktop notifications: the language switch in the top-right corner, the master switch, the test notification and the delivery mode">
 
-## What's new in 0.2.1
+## What's new in 0.2.2
 
-- **Toast identity fallback.** Newer desktop builds register notifications under `com.deepseek.dsh`, older
-  ones under `electron.app.DeepSeek Harness`. Before raising a toast the plugin probes which identity
-  Windows knows (the named legacy id first, the manifest id as fallback), so a desktop-side identity change
-no longer makes popups
-  disappear silently; the identity used is recorded in the diagnostics route.
-- **Compatibility.** Verified on DSH desktop **0.2.1-rc.5** (plugin loading, projection delivery, host
-  toast with the identity fallback, diagnostics and text-template routes); the declared range is unchanged.
-  Existing settings and saved texts are preserved, and the settings UI is unchanged.
+- **The plugin speaks both languages.** A language control in the top-right corner of the settings card
+  switches the plugin's own copy and every popup text between Chinese and English, or leaves it on
+  **Auto** to follow the DSH interface language. Only the plugin changes — the rest of DSH keeps its own
+  language. `Auto` is the default, and existing settings and saved texts are preserved.
+- **Compatibility.** Verified on DSH desktop **0.2.2-rc.1** (plugin loading, projection delivery, host
+  toast, diagnostics and text-template routes). The declared range is unchanged
+  (`>=0.2.0-rc.2 <0.3.0-0`).
 
 ## What you get
 
@@ -28,6 +27,8 @@ no longer makes popups
 - **A sound and a text per situation** — nine situations (five turn ends, three waits, one reminder),
   each with its own sound and its own popup text; each situation can store up to three custom texts, and
   every row has a Preview button that shows and plays exactly what it will do.
+- **Bilingual** — the plugin's own interface and popup text switch between Chinese and English, either
+  pinned or following the DSH language.
 - **Three delivery modes** — toast + sound, toast only (silent), sound only (no toast).
 - **Your own sounds and words** — sounds come from the Windows library, the author sounds shipped in
   [`sounds/`](sounds/), or files you import; texts have a name, a title, a body and placeholders, live in a
@@ -72,8 +73,11 @@ this machine; every change applies immediately.
 | Enable notifications | Master switch; nothing toasts or sounds while it is off. Every delivery control greys out (the chosen values stay): the mode, each situation's sound and text, the previews, the reminder minutes and the situation switches below. Only "Custom sounds" and "Custom texts" stay editable |
 | Send a test notification | Right below the master switch; always the default Windows sound plus a fixed toast, unaffected by the mode and every setting below — use it to check that the configuration works |
 | Delivery mode | Toast + sound (default) / Toast only (silent) / Sound only (no toast) |
-<img width="415" height="534" alt="屏幕截图 2026-10-25 180124" src="https://github.com/user-attachments/assets/f259971d-e2bb-4361-bac9-d720065e226e" />
+| Language | Top-right of the card: **Auto** (follow the DSH language) / **中文** / **English**. Only the plugin's own copy and popup texts change; the rest of DSH keeps its language |
 
+What "Send a test notification" raises:
+
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/toast-en.png" width="460" alt="The test toast: DeepSeek Harness · DSH notification test · If you can see this, the toast and the default notification sound both work">
 
 **Card 2 — Notify me in which of these situations:**
 
@@ -82,8 +86,7 @@ this machine; every change applies immediately.
 | A session ends | Completed / Error / Aborted / Blocked / Token limit reached (each row carries an example) |
 | Waiting on you | Waiting for approval / an answer / a plan review (each row carries an example) |
 
-<img width="409" height="427" alt="屏幕截图 2026-10-25 181130" src="https://github.com/user-attachments/assets/d636dc8b-e19f-4f4f-a43c-d0280612594e" />
-
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-situations-en.png" width="620" alt="Card 2, Notify me in which of these situations: the session-ends group and the waiting-on-you group">
 
 **Card 3 — Notification setup: the sound and text of each situation:**
 
@@ -99,7 +102,7 @@ this machine; every change applies immediately.
 Ticking a situation makes its row appear in the "Notification setup" card below; unticking it only hides the
 row and keeps its sound and text, so ticking it again brings them back.
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize.png" width="460" alt="Notification setup: sound and text per situation, reminder minutes and the two collapsible libraries">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize-en.png" width="620" alt="Card 3, Notification setup: the sound and text of each situation, the previews and the two collapsible libraries">
 
 ## Sounds
 
@@ -149,10 +152,10 @@ this file by hand** — the client loads it once at start-up.
 
 | | |
 |---|---|
-| Verified on | DSH desktop **0.2.1-rc.5**: plugin loading, projection delivery, host toast (including the 0.2.1 identity fallback), diagnostics and text-template routes pass ([evidence](docs/acceptance/2026-10-31-toast-identity.md)); earlier runs — 0.2.1-rc.3 (settings page, sound, custom texts) and rc.2 / rc.1 / 0.2.0-rc.2 — are kept in `docs/acceptance/` |
+| Verified on | DSH desktop **0.2.2-rc.1**: plugin loading, projection delivery, host toast, diagnostics and text-template routes, plus the settings page's Chinese/English switch ([evidence](docs/acceptance/2026-11-06-bilingual-ui.md)); earlier runs — 0.2.1-rc.5 (toast identity) and rc.3 / rc.2 / 0.2.0-rc.2 — are kept in `docs/acceptance/` |
 | Declared range | `>=0.2.0-rc.2 <0.3.0-0` (the loader's semver gate) — this lets the loader **accept** the whole 0.2 line from 0.2.0-rc.2 on, prereleases included; **only the versions verified above are tested — anything else inside the range is allowed but not guaranteed**. 0.2.0-rc.1 and older, and 0.3.x, are outside it |
 | Platform | Windows desktop profile only; the web profile has no toast channel and is untested |
-| Seam check | The 0.2.1 runtime image ships no `.d.ts`; every seam used here was checked against its compiled JS and still matches |
+| Seam check | The 0.2.2 runtime image ships no `.d.ts`; every seam used here was checked against its compiled JS and still matches |
 
 The compatibility claim lives in both `dsh.engines.dsh` and `peerDependencies.@deepseek-ai/dsh` (kept
 identical). The loader checks it with `semver.satisfies(runtime, range, { includePrerelease: true })`; a

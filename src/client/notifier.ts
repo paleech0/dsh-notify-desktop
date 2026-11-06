@@ -240,10 +240,12 @@ export function pickSoundFile(): Promise<string> {
  * renderer's own signal keeps deciding.
  * @returns true when the foreground window belongs to this app.
  */
-export function appWindowFocused(): Promise<boolean> {
+export function appWindowFocused(fresh = false): Promise<boolean> {
   const fetchImpl = globalThis.fetch
   if (fetchImpl === undefined) return Promise.resolve(false)
-  return fetchImpl(FOREGROUND_ROUTE, { headers: { [FOCUS_HEADER]: '1' } })
+  // `fresh` skips the host's short-lived cache, which is what the window losing
+  // focus needs: the cached answer is the one from before the switch.
+  return fetchImpl(fresh ? FOREGROUND_ROUTE + '?fresh=1' : FOREGROUND_ROUTE, { headers: { [FOCUS_HEADER]: '1' } })
     .then(response => (response.ok ? response.json() : null))
     .then((payload: unknown) => (payload as { focused?: unknown } | null)?.focused === true, () => false)
 }

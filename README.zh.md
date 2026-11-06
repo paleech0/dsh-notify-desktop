@@ -5,16 +5,15 @@
 给 **DSH 桌面端** 加 Windows 原生通知：会话跑完、出错、或停下来等你确认时弹一条系统通知，并播放**为这种情况挑好的音效**、
 显示**为这种情况写好的文字**；点通知把 DSH 窗口拉回前台。
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="桌面通知与通知情况（上半）">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-zh.png" width="620" alt="卡一「桌面通知」：右上角语言切换、总开关、发送测试通知与通知形式">
 
-## 0.2.1 更新
+## 0.2.2 更新
 
-- **Toast 身份自适应**：桌面端新版用 `com.deepseek.dsh` 登记通知、旧版用 `electron.app.DeepSeek Harness`。
-  插件现在会在弹通知前探测系统认得的身份（旧号优先——Windows 能为它显示应用名和图标；旧号不存在时用新号），
-  桌面端换过通知身份后弹窗不会再静默失效；
-  本次使用的身份会记进诊断接口。
-- **兼容性**：在 DSH 桌面端 **0.2.1-rc.5** 实测通过（插件加载、会话投影、宿主 Toast 与身份自适应、诊断与文本模板路由）；
-  声明范围不变。旧版设置和已保存的自定义文本原样保留，设置界面没有改动。
+- **插件自带中英双语**：设置卡片右上角新增语言切换（自动 / 中文 / English）。选「自动」跟随 DSH 的界面语言；
+  选中文或 English 只改插件自己——设置页文案和**弹窗文本**一起切换，DSH 其余界面不受影响。
+  默认「自动」，已有设置和自定义文本原样保留。
+- **兼容性**：在 DSH 桌面端 **0.2.2-rc.1** 实测通过（插件加载、会话投影、宿主 Toast、诊断与文本模板路由）；
+  声明范围不变（`>=0.2.0-rc.2 <0.3.0-0`）。
 
 ## 它能给你什么
 
@@ -23,6 +22,7 @@
 - **你在看就不吵** —— DSH 窗口有焦点时一律不弹；同一件事只弹一次（3 秒去重）。
 - **每种情况一套音效和文字** —— 九个情况（五个结束原因、三种等待、一个催办）各自挑音效、各自选弹窗文本；
   每个情况可以保存最多 3 套自定义文本，每行都能先点「预览效果」看/听。
+- **中英双语** —— 插件界面和弹窗文本可以单独切到中文或 English，也可以跟随 DSH 的界面语言。
 - **通知形式三选一** —— 通知 + 提示音 / 仅通知（静音弹窗）/ 仅提示音（只出声，不弹窗）。
 - **可以用自己的音效和文字** —— 音效来源三类：Windows 音效、随插件发布的作者音效（[sounds/](sounds/)）、你导入的文件；
   文字支持名称、标题、正文和占位符，保存在本机 JSON 里，改名/删除都走二次确认。
@@ -64,7 +64,11 @@
 | 启用通知 | 总开关；关掉后不再弹窗也不出声。交付相关的控件全部**变灰**（已选内容保留）：通知形式、各情况的音效/文本选择、预览、催办分钟数、下面的情况开关；只有「自定义音效」「自定义文本」仍可编辑 |
 | 发送测试通知 | 就在总开关下方；固定用默认音效（Windows 通知）+ 弹窗，**不受**通知形式和下面任何设置影响，用于检测配置是否正常 |
 | 通知形式 | 三选一：**通知 + 提示音**（默认）/ **仅通知**（只弹窗）/ **仅提示音**（只出声，不弹窗） |
-<img width="415" height="534" alt="屏幕截图 2026-10-25 180124" src="https://github.com/user-attachments/assets/cbecba0a-704f-4e7f-a411-ed1ffca2b84f" />
+| 语言 | 卡片右上角：**自动**（跟随 DSH 的语言）/ **中文** / **English**。切换只改插件自己的界面文案与弹窗文本，DSH 其余界面不受影响 |
+
+点「发送测试通知」弹出的系统通知长这样：
+
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/toast-zh.png" width="460" alt="测试通知：DeepSeek Harness · 测试通知 · 看到这条通知，说明弹窗与默认提示音均正常">
 
 **卡二「选择接收以下哪种情况的通知」—— 哪些情况要提醒：**
 
@@ -73,7 +77,7 @@
 | 会话结束 | 正常完成 / 出错 / 被中止 / 被阻塞 / 达到 Token 上限（每行附一句例子） |
 | 等待你确认 | 等待审批 / 等待回答 / 等待计划评审（每行附一句例子） |
 
-<img width="409" height="427" alt="屏幕截图 2026-10-25 181130" src="https://github.com/user-attachments/assets/2558b1eb-7b2b-497c-bb8f-a3144ee1718f" />
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-situations-zh.png" width="620" alt="卡二「选择接收以下哪种情况的通知」：会话结束与等待你确认两组开关">
 
 **卡三「通知自定义」—— 每个情况的声音和文字：**
 
@@ -88,7 +92,7 @@
 
 勾选情况后，下面的「通知自定义」会实时出现对应行；取消勾选只是隐藏，已配的音效和文本都保留，重新勾选回来还在。
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize.png" width="460" alt="通知自定义：每个情况的音效、文本与两个折叠库">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize-zh.png" width="620" alt="卡三「通知自定义」：每个情况的音效、文本、预览与两个折叠库">
 
 ## 音效
 
@@ -130,10 +134,10 @@
 
 | | |
 |---|---|
-| 实测版本 | DSH 桌面端 **0.2.1-rc.5**：插件加载、会话投影、宿主 Toast（含 0.2.1 起的新旧身份自适应）、诊断与文本模板路由实测通过（[证据](docs/acceptance/2026-10-31-toast-identity.md)）；更早的 0.2.1-rc.3（设置页/音效/文本）与 rc.2 / rc.1 / 0.2.0-rc.2 记录见 `docs/acceptance/` |
+| 实测版本 | DSH 桌面端 **0.2.2-rc.1**：插件加载、会话投影、宿主 Toast、诊断与文本模板路由，以及设置页的中英切换实测通过（[证据](docs/acceptance/2026-11-06-bilingual-ui.md)）；更早的 0.2.1-rc.5（Toast 身份自适应）与 rc.3 / rc.2 / 0.2.0-rc.2 记录见 `docs/acceptance/` |
 | 声明范围 | `>=0.2.0-rc.2 <0.3.0-0`（semver 加载闸门）—— 表示**加载器会放行**从 0.2.0-rc.2 起的整条 0.2 线（含预发布）；**只有上表实测版本经过验证，范围内其它版本不保证**。0.2.0-rc.1 及更早、0.3.x 不在范围内 |
 | 平台 | 仅 Windows 桌面端 profile；web profile 没有 Toast 通道，未验证 |
-| seam 核对 | 0.2.1 运行时镜像不带 `.d.ts`；本插件用到的全部 seam 均按其编译 JS 复核通过 |
+| seam 核对 | 0.2.2 运行时镜像不带 `.d.ts`；本插件用到的全部 seam 均按其编译 JS 复核通过 |
 
 兼容声明同时写在 `dsh.engines.dsh` 和 `peerDependencies.@deepseek-ai/dsh`（两处保持一致）；
 加载器用 `semver.satisfies(runtime, range, { includePrerelease: true })` 判定，**不匹配会直接跳过该插件**（不加载）。

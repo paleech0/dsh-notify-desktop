@@ -42,7 +42,11 @@ export declare const TOAST_SCRIPT_LINES: readonly string[];
  */
 export declare const MEDIA_SCRIPT_LINES: readonly string[];
 /**
- * Register the projection and the focus route.
+ * Register the projection and the routes.
+ *
+ * Async on purpose: 0.2.2 returns an awaitable registration handle, and awaiting
+ * it is the documented replacement for the deprecated `stateOf(session, key)`
+ * read. The owning fiber still releases the registration on unload.
  * @param ctx - host cordis context.
  */
-export declare function apply(ctx: Context): void;
+export declare function apply(ctx: Context): Promise<void>;

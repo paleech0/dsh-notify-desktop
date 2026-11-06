@@ -1,9 +1,11 @@
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
-import type { NotifySettings, SoundLibrary } from '../types.ts';
+import type { NotifySettings, PluginLanguage, SoundLibrary } from '../types.ts';
 import { type NotifyScenario } from '../scenarios.ts';
+import { type NotifyKey } from './locales.ts';
 import type { SoundCacheInfo } from './notifier.ts';
 import type { SettingsStore } from './settings.ts';
 import type { TextStore } from './texts.ts';
+import type { ResolvedLanguage } from './language.ts';
 /** Injected business face of the section. */
 export interface NotifySectionInjected {
     /** The live settings store. */
@@ -28,6 +30,14 @@ export interface NotifySectionInjected {
     cacheInfo: () => Promise<SoundCacheInfo | null>;
     /** Empty the transcoded-wav cache. */
     clearCache: () => Promise<SoundCacheInfo | null>;
+    /** Translate one key in the plugin's own language (not the DSH locale seat). */
+    tr: (key: NotifyKey, params?: Record<string, string>) => string;
+    /** The language the plugin copy uses right now. */
+    language: () => ResolvedLanguage;
+    /** Pin the plugin language. */
+    setLanguage: (value: PluginLanguage) => void;
+    /** Re-render when the effective language changes (the store or the DSH locale). */
+    subscribeLanguage: (listener: () => void) => () => void;
 }
 /** Full section props: runtime share + injected face + the locale seat. */
 export type NotifySectionProps = PropsRuntime<'settings.section'> & InjectFace<NotifySectionInjected> & PropsLocale<'notify'>;

@@ -9,6 +9,11 @@ export const zh = {
 
   // Card 1 — the master switch, the test button, the delivery mode.
   'settings.title': '桌面通知',
+  'settings.language.label': '界面语言',
+  'settings.language.auto': '自动',
+  'settings.language.autoHint': '跟随 DSH 的语言设置',
+  'settings.language.zh': '中文',
+  'settings.language.en': 'English',
   'settings.subtitle': '会话跑完、出错、或停下来等你确认时，弹出 Windows 通知；点通知可以回到对应会话。',
   'settings.enabled': '启用通知',
   'settings.enabledDesc': '总开关；关闭后不再弹任何通知，也不响音效。关闭时通知形式、各情况的音效与文本选择、预览和下面的通知情况都会变灰（已选内容保留），只有自定义音效和自定义文本仍可编辑。',
@@ -173,6 +178,11 @@ export const en = {
   nav: 'Notifications',
 
   'settings.title': 'Desktop notifications',
+  'settings.language.label': 'Interface language',
+  'settings.language.auto': 'Auto',
+  'settings.language.autoHint': 'Follow the DSH language setting',
+  'settings.language.zh': '中文',
+  'settings.language.en': 'English',
   'settings.subtitle': 'A Windows toast when a session finishes, fails, or stops to ask you something; click it to return to that session.',
   'settings.enabled': 'Enable notifications',
   'settings.enabledDesc': 'Master switch; turning it off stops every toast and sound. Every delivery control greys out (the chosen values stay): the mode, each situation\'s sound and text, the previews and the situations below. Only the custom sounds and the custom texts remain editable.',

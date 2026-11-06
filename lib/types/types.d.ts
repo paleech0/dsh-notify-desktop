@@ -111,6 +111,17 @@ export declare const DEFAULT_TEXT_CHOICE = "default";
 export declare const NOTIFY_MODES: readonly ["both", "notify", "sound"];
 /** One delivery mode. */
 export type NotifyMode = (typeof NOTIFY_MODES)[number];
+/**
+ * Which language the plugin's own interface and popup text use.
+ *
+ * `auto` follows the DSH interface language (Chinese when DSH runs in Chinese,
+ * English otherwise); `zh` and `en` pin the plugin without touching the rest
+ * of the app. The dictionaries already ship both languages, so this only picks
+ * one of them.
+ */
+export declare const PLUGIN_LANGUAGES: readonly ["auto", "zh", "en"];
+/** One plugin language choice. */
+export type PluginLanguage = (typeof PLUGIN_LANGUAGES)[number];
 /** The built-in title: what the composed title was before templates existed. */
 export declare const DEFAULT_TITLE_TEMPLATE = "{\u5DE5\u4F5C\u533A} \u00B7 {\u72B6\u6001}";
 /** The built-in body: just the summary. */
@@ -154,6 +165,8 @@ export interface NotifySettings {
     readonly notifyPlanReview: boolean;
     /** Minutes an unanswered blocking interaction may wait before one reminder. */
     readonly remindAfterMinutes: number;
+    /** The language of this plugin's own interface and popup text. */
+    readonly language: PluginLanguage;
 }
 /**
  * Defaults: everything on, sounds on, one reminder after ten minutes.

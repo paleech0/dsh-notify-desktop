@@ -6,6 +6,11 @@
 export declare const zh: {
     readonly nav: "通知";
     readonly 'settings.title': "桌面通知";
+    readonly 'settings.language.label': "界面语言";
+    readonly 'settings.language.auto': "自动";
+    readonly 'settings.language.autoHint': "跟随 DSH 的语言设置";
+    readonly 'settings.language.zh': "中文";
+    readonly 'settings.language.en': "English";
     readonly 'settings.subtitle': "会话跑完、出错、或停下来等你确认时，弹出 Windows 通知；点通知可以回到对应会话。";
     readonly 'settings.enabled': "启用通知";
     readonly 'settings.enabledDesc': "总开关；关闭后不再弹任何通知，也不响音效。关闭时通知形式、各情况的音效与文本选择、预览和下面的通知情况都会变灰（已选内容保留），只有自定义音效和自定义文本仍可编辑。";
@@ -151,6 +156,11 @@ export type NotifyKey = keyof typeof zh;
 export declare const en: {
     nav: string;
     'settings.title': string;
+    'settings.language.label': string;
+    'settings.language.auto': string;
+    'settings.language.autoHint': string;
+    'settings.language.zh': string;
+    'settings.language.en': string;
     'settings.subtitle': string;
     'settings.enabled': string;
     'settings.enabledDesc': string;

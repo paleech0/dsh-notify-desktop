@@ -173,6 +173,19 @@ export const NOTIFY_MODES = Object.freeze(['both', 'notify', 'sound'] as const)
 /** One delivery mode. */
 export type NotifyMode = (typeof NOTIFY_MODES)[number]
 
+/**
+ * Which language the plugin's own interface and popup text use.
+ *
+ * `auto` follows the DSH interface language (Chinese when DSH runs in Chinese,
+ * English otherwise); `zh` and `en` pin the plugin without touching the rest
+ * of the app. The dictionaries already ship both languages, so this only picks
+ * one of them.
+ */
+export const PLUGIN_LANGUAGES = Object.freeze(['auto', 'zh', 'en'] as const)
+
+/** One plugin language choice. */
+export type PluginLanguage = (typeof PLUGIN_LANGUAGES)[number]
+
 /** The built-in title: what the composed title was before templates existed. */
 export const DEFAULT_TITLE_TEMPLATE = '{工作区} · {状态}'
 
@@ -219,6 +232,8 @@ export interface NotifySettings {
   readonly notifyPlanReview: boolean
   /** Minutes an unanswered blocking interaction may wait before one reminder. */
   readonly remindAfterMinutes: number
+  /** The language of this plugin's own interface and popup text. */
+  readonly language: PluginLanguage
 }
 
 /** The default sound for every situation, one entry per scenario. */
@@ -267,6 +282,7 @@ export const DEFAULT_SETTINGS: NotifySettings = Object.freeze({
   notifyQuestion: true,
   notifyPlanReview: true,
   remindAfterMinutes: 10,
+  language: 'auto',
 })
 
 /** The reasons a turn may end with, in the client's notifiable vocabulary. */
