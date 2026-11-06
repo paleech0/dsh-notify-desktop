@@ -40,8 +40,17 @@
 所以按「可见/隐藏」分流等于让最常见的场景落到一条不可靠的通道上（实测：最小化、可见但失焦，渲染层都是静默失效）。
 
 宿主 Toast 的三个硬约束（实测，别"优化"掉）：PowerShell **绝对路径**、**不要 `detached`**、**stdio 保留管道并 drain**（`'ignore'` 会让 Toast 静默失效且退出码仍为 0）。
-Toast 身份**不许写死**：候选在 `src/aumid.ts`（旧 `electron.app.DeepSeek Harness` 优先——Windows 能解析显示名/图标，新 `com.deepseek.dsh` 兜底），
-子进程先探测 `CreateToastNotifier(...).Setting` 是否非空再 Show，选中身份写进 debug ring；`DSH_NOTIFY_AUMID=id1;id2` 可覆盖。
+Toast 身份**不许写死**：候选在 `src/aumid.ts`（manifest id `com.deepseek.dsh` 优先——宿主自己会注册它，新版安装器也把它写上快捷方式；旧 `electron.app.DeepSeek Harness` 兜底），
+子进程**先查注册表登记再探测**：`Test-Path` HKCU/HKLM `SOFTWARE\Classes\AppUserModelId\<id>` 命中即选（登记 = 可解析，见 `src/identity.ts`），
+都没登记才退回 `CreateToastNotifier(...).Setting` 非空探测——**Setting 是粗过滤器**（2026-11-06 实测：0.2.2-rc.1 把快捷方式换成 manifest id 后，
+旧 id 什么都解析不到、Setting 仍报 Enabled，Toast 退化成裸 AUMID 标签无图标），最后兜底用末位候选。选中身份写进 debug ring；
+`DSH_NOTIFY_AUMID=id1;id2` 可覆盖。
+
+**宿主启动即登记身份**（`src/identity.ts`，fire-and-forget）：reg.exe 静态 argv 在 `HKCU\SOFTWARE\Classes\AppUserModelId\com.deepseek.dsh`
+写入 `DisplayName`（"DeepSeek Harness"）+ `IconUri`（随包 `assets/dsh-icon.png`，仅当资产存在；只补缺/纠偏，永不删值）。
+这是微软对非打包 Win32 应用的登记机制（ToastNotificationManagerCompat/BurntToast 同表），不依赖下一个安装器把快捷方式写对；
+写失败只退回快捷方式解析，不影响出 Toast。reg.exe 是**唯一**的注册表通道——**不许新增 PowerShell spawn 点**（安全钩子拦截新 PS spawn）。
+诊断路由有 `identity` 字段（本次登记写了什么、成败如何）。
 
 ## 通知形式、按情况音效与弹窗文本
 

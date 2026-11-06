@@ -8,6 +8,17 @@ clicking it brings the DSH window back to the front.
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings.png" width="460" alt="Desktop notifications and the situation list (top half)">
 
+## What's new (unreleased)
+
+- **Toasts carry the app's name and icon again.** Desktop 0.2.2-rc.1 moved the Start-menu shortcut to the
+  manifest id, which left the previous identity fallback pointing at an id Windows could no longer resolve —
+  popups degraded to a raw `electron.app.DeepSeek Harness` label with no icon. The host now registers the
+  manifest id itself at startup (the documented registry mechanism for unpackaged apps, via `reg.exe` with
+  static arguments), so the identity resolves no matter which shortcut the last install left behind. The
+  probe prefers a registered identity and only then falls back to the coarse `Setting` check, which reports
+  `Enabled` even for ids nothing resolves. The diagnostics route gained an `identity` field showing what was
+  written and whether it succeeded.
+
 ## What's new in 0.2.1
 
 - **Toast identity fallback.** Newer desktop builds register notifications under `com.deepseek.dsh`, older
@@ -190,14 +201,26 @@ a bounded queue. A cross-source key keeps the two copies from double-toasting.
 | `POST /dsh-notify/pick-file`, `GET /dsh-notify/foreground` | Windows file picker; OS-level focus answer |
 | `GET /dsh-notify/questions` | Poll the host-side question queue |
 
-**Toast identity fallback.** The desktop app may be registered for notifications under either of two
-AppUserModelIDs: newer builds use `com.deepseek.dsh`, older ones Electron's default
-`electron.app.DeepSeek Harness`. Nothing is hard-coded: before raising a toast the host child probes the
-candidates (`CreateToastNotifier(...).Setting` non-null means the identity is registered), prefers the
-legacy id because Windows resolves its display name and icon, and falls back to the manifest id; the
-chosen identity is logged in the diagnostics route. To
-force a list, set `DSH_NOTIFY_AUMID=id1;id2` before starting the desktop app (semicolon-separated,
-tried in order).
+**Toast identity.** Windows shows an application's name and icon on a toast only when it can resolve the
+toast's AppUserModelID: a Start-menu shortcut carrying that id, or a registry entry under
+`HKCU\SOFTWARE\Classes\AppUserModelId` — the documented registration for unpackaged apps, and the table
+ToastNotificationManagerCompat and BurntToast write. The desktop app may use either of two ids: the
+manifest id `com.deepseek.dsh` (current builds put it on the shortcut) or Electron's default
+`electron.app.DeepSeek Harness` (older installs). The host does not depend on which one the last installer
+happened to leave behind:
+
+- **At startup it registers the manifest id itself** (see `src/identity.ts`): one `reg.exe` child with a
+  fully static argument list writes `DisplayName` ("DeepSeek Harness") and `IconUri` (the bundled
+  `assets/dsh-icon.png`) into the per-user table — only values that are missing or have drifted, never
+  deleting anything, and a machine that refuses the write still toasts through whatever the shortcut
+  resolves.
+- **Before raising a toast the child picks a registered identity first**: a `Test-Path` over the HKCU/HKLM
+  keys decides — a registration is what actually proves an identity is resolvable. Only when nothing is
+  registered does it fall back to the `Setting` probe, which is coarse (measured on 2026-11-06: it reports
+  `Enabled` even for an id nothing resolves anymore), and finally to the legacy id. The chosen identity is
+  logged in the diagnostics route, which also reports the `identity` field with this boot's registration
+  result. To force a list, set `DSH_NOTIFY_AUMID=id1;id2` before starting the desktop app
+  (semicolon-separated, tried in order).
 
 ## Troubleshooting
 
@@ -209,8 +232,9 @@ Invoke-WebRequest http://127.0.0.1:<desktop-port>/dsh-notify/debug
 ```
 
 It returns the projection registration state, the last 40 client reports (every decision, channel choice
-and platform result), and the sound plumbing (`media.ffmpeg`, `media.soundPlayers`). Every host toast also
-logs one `host-toast aumid=… candidates=…` line, which shows the identity it actually used.
+and platform result), the sound plumbing (`media.ffmpeg`, `media.soundPlayers`), and this boot's identity
+registration (`identity`: the id ensured, the values written, success or the failure message). Every host
+toast also logs one `host-toast aumid=… candidates=…` line, which shows the identity it actually used.
 
 ## Development
 
