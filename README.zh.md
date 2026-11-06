@@ -66,6 +66,7 @@
 | 语言 | 卡片右上角：**自动**（跟随 DSH 的语言）/ **中文** / **English**。切换只改插件自己的界面文案与弹窗文本，DSH 其余界面不受影响 |
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-zh.png" width="620" alt="卡一「桌面通知」：右上角语言切换、总开关、发送测试通知与通知形式">
+
 点「发送测试通知」弹出的系统通知长这样：
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/toast-zh.png" width="460" alt="测试通知：DeepSeek Harness · 测试通知 · 看到这条通知，说明弹窗与默认提示音均正常">
@@ -120,6 +121,9 @@ scoop install ffmpeg           # 已装 Scoop
 
 也可以从 [ffmpeg.org](https://ffmpeg.org/download.html) 或 [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) 下载构建包，
 把里面的 `ffmpeg.exe` 放进任意一个 `PATH` 目录。装好后回到设置页就能用，**不用重启 DSH**。
+
+转码只在该格式**第一次播放**时发生，实测 5 秒~5 分钟的音频都是 0.1~0.3 秒，之后的播放直接用缓存。缓存是未压缩的 wav，
+体积约 **10 MB/分钟**，所以建议用短音效；占用的空间在设置页「自定义音效 → 转换缓存」里可以看到并一键清理（只删缓存，不动音效本体）。
 
 **声音什么时候停。** `.wav` 直接播放；其他格式首次播放时用 `PATH` 上的 `ffmpeg` 转码一次，占用计入「自定义音效」里的
 **「转换缓存」**（在那里查看与清理）。文件类音效最长 8 秒；总开关关掉、切到「仅通知」，或窗口重获焦点时，正在响的**立刻停**。

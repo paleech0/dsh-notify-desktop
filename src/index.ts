@@ -637,8 +637,16 @@ function handleSoundCache(req: IncomingMessage, res: ServerResponse): void {
     res.end()
     return
   }
+  // A transcode interrupted by the eight-second cap leaves a ".part" behind;
+  // the next play overwrites it, but the clear button should reclaim the space.
+  let partials: string[] = []
+  try {
+    partials = readdirSync(directory).filter(name => name.endsWith('.wav.part'))
+  } catch {
+    // No cache folder yet.
+  }
   let removed = 0
-  for (const name of files) {
+  for (const name of [...files, ...partials]) {
     try {
       rmSync(join(directory, name), { force: true })
       removed += 1
@@ -843,7 +851,9 @@ export const MEDIA_SCRIPT_LINES: readonly string[] = [
   '      $cached = $env:DSH_NOTIFY_WAVCACHE',
   '      if ($cached -and -not (Test-Path -LiteralPath $cached) -and $env:DSH_NOTIFY_FFMPEG) {',
   '        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $cached) | Out-Null',
-  '        & $env:DSH_NOTIFY_FFMPEG -y -loglevel error -i $media -ac 2 -ar 44100 -acodec pcm_s16le $cached | Out-Null',
+  '        $partial = $cached + ".part"',
+  '        & $env:DSH_NOTIFY_FFMPEG -y -loglevel error -i $media -ac 2 -ar 44100 -acodec pcm_s16le $partial | Out-Null',
+  '        if ((Test-Path -LiteralPath $partial) -and -not (Test-Path -LiteralPath $cached)) { Move-Item -LiteralPath $partial -Destination $cached -Force }',
   '      }',
   '      if ($cached -and (Test-Path -LiteralPath $cached)) { $media = $cached }',
   '    }',

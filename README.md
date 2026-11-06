@@ -134,6 +134,11 @@ You can also download a build from [ffmpeg.org](https://ffmpeg.org/download.html
 [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) and put `ffmpeg.exe` anywhere on your `PATH`. It works as soon as you
 come back to the settings page — **no DSH restart**.
 
+The transcode happens on that format's **first play** only: measured 0.1–0.3 s for anything from five seconds to five
+minutes, and every later play reads the cache. The cache is uncompressed wav — about **10 MB per minute** — so short
+sounds are the sane choice; "`Custom sounds → Transcode cache`" shows how much it takes and clears it without touching
+the sounds themselves.
+
 **When a sound stops.** A `.wav` plays directly. Anything else is transcoded once with the `ffmpeg` on
 your `PATH` and lands in the transcode cache inside "Custom sounds", which reports its size and can clear
 it. File sounds are capped at eight seconds, and a sound already playing stops immediately when you switch

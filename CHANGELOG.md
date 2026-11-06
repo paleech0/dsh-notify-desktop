@@ -24,6 +24,9 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ### Fixed
 
+- A transcode now writes a `.part` file and is promoted only once ffmpeg finishes. A conversion cut off by the
+  eight-second sound cap used to leave a truncated wav that the next play accepted as cache; the clear button also
+  reclaims leftover `.part` files.
 - Deleting a custom sound switches every situation that used it back to that situation's default sound. Before,
   the stored id pointed at a file that no longer existed, the picker showed the raw id, and playback quietly fell
   back to the system chime.
