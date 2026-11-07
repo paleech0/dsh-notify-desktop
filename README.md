@@ -15,6 +15,9 @@ clicking it brings the DSH window back to the front.
   it, with the sound played once. Once remains the default, so existing settings are unchanged.
 - **Custom sounds can be renamed**, Chinese names included.
 - **Non-wav custom sounds play again** (fixed in 0.2.4).
+- **The shipped author sounds follow the interface language**: English shows Task completed, not the Chinese file name.
+- **The reminder style select matches the delay field** and sits in the same column; an imported sound is laid out on
+  two lines so a long file name no longer squeezes its buttons into one block.
 
 ## What's new in 0.2.4
 
@@ -113,7 +116,9 @@ What "Send a test notification" raises:
 Ticking a situation makes its row appear in the "Notification setup" card below; unticking it only hides the
 row and keeps its sound and text, so ticking it again brings them back.
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize-en.png" width="620" alt="Card 3, Notification setup: the sound and text of each situation, the previews and the two collapsible libraries">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize-en.png" width="620" alt="Card 3, Notification setup: the sound and text of each scenario, with its preview">
+
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-libraries-en.png" width="620" alt="The Custom sounds and Custom texts collapsible libraries">
 
 ## Sounds
 

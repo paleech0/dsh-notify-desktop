@@ -86,7 +86,11 @@ export declare const zh: {
     readonly 'settings.sounds.groupAuthor': "作者音效";
     readonly 'settings.sounds.groupCustom': "自定义音效";
     readonly 'settings.sounds.authorEmpty': "作者音效：暂无（放在插件 sounds/ 文件夹里）";
-    readonly 'settings.sounds.customEmpty': "还没有自定义音效，点下面的「添加音效…」";
+    readonly 'settings.sounds.author.completed': "任务正常结束";
+    readonly 'settings.sounds.author.error': "任务出错";
+    readonly 'settings.sounds.author.attention': "需要你处理";
+    readonly 'settings.sounds.author.reminder': "超时催办";
+    readonly 'settings.sounds.customEmpty': "还没有自定义音效，展开下方的 自定义音效 以添加音效";
     readonly 'settings.sounds.pickerLabel': "选择音效";
     readonly 'settings.cache.label': "转换缓存";
     readonly 'settings.cache.empty': "暂无转换缓存";
@@ -254,6 +258,10 @@ export declare const en: {
     'settings.sounds.groupAuthor': string;
     'settings.sounds.groupCustom': string;
     'settings.sounds.authorEmpty': string;
+    'settings.sounds.author.completed': string;
+    'settings.sounds.author.error': string;
+    'settings.sounds.author.attention': string;
+    'settings.sounds.author.reminder': string;
     'settings.sounds.customEmpty': string;
     'settings.sounds.pickerLabel': string;
     'settings.cache.label': string;

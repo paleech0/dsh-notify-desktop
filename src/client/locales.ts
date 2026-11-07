@@ -93,7 +93,11 @@ export const zh = {
   'settings.sounds.groupAuthor': '作者音效',
   'settings.sounds.groupCustom': '自定义音效',
   'settings.sounds.authorEmpty': '作者音效：暂无（放在插件 sounds/ 文件夹里）',
-  'settings.sounds.customEmpty': '还没有自定义音效，点下面的「添加音效…」',
+  'settings.sounds.author.completed': '任务正常结束',
+  'settings.sounds.author.error': '任务出错',
+  'settings.sounds.author.attention': '需要你处理',
+  'settings.sounds.author.reminder': '超时催办',
+  'settings.sounds.customEmpty': '还没有自定义音效，展开下方的 自定义音效 以添加音效',
   'settings.sounds.pickerLabel': '选择音效',
 
   // The transcode cache, inside the sound library.
@@ -278,7 +282,11 @@ export const en = {
   'settings.sounds.groupAuthor': 'Author sounds',
   'settings.sounds.groupCustom': 'Custom sounds',
   'settings.sounds.authorEmpty': 'No author sounds (they live in the plugin\'s sounds/ folder)',
-  'settings.sounds.customEmpty': 'No custom sounds yet - use Add sound… below',
+  'settings.sounds.author.completed': 'Task completed',
+  'settings.sounds.author.error': 'Task failed',
+  'settings.sounds.author.attention': 'Needs your attention',
+  'settings.sounds.author.reminder': 'Overdue reminder',
+  'settings.sounds.customEmpty': 'No custom sounds yet - expand Custom sounds below to add one',
   'settings.sounds.pickerLabel': 'Choose a sound',
 
   'settings.cache.label': 'Transcode cache',

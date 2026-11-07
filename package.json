@@ -71,7 +71,8 @@
     "build": "node build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/vitest.mjs",
-    "check": "pnpm run typecheck && pnpm run test && pnpm run build",
+    "check": "pnpm run typecheck && pnpm run test && pnpm run build && pnpm run smoke",
+    "smoke": "node scripts/smoke.mjs",
     "patch:vite": "node scripts/patch-vite-sandbox.mjs"
   },
   "peerDependencies": {

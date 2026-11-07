@@ -464,6 +464,32 @@ describe('notification settings section', () => {
     expect(buttons(container, en['settings.test.button'])).toHaveLength(1)
   })
 
+  it('names the shipped author sounds in the plugin language', async () => {
+    const library: SoundLibrary = {
+      author: [
+        { id: 'author:1-任务正常结束.wav', name: '1-任务正常结束', file: '1-任务正常结束.wav', bytes: 100 },
+        { id: 'author:mine.wav', name: 'mine', file: 'mine.wav', bytes: 100 },
+      ],
+      custom: [],
+      ffmpeg: true,
+    }
+    const { container } = await render({ loadLibrary: () => Promise.resolve(library) } as Partial<NotifySectionProps>)
+    // Open the first situation's sound picker and expand the author section.
+    const picker = container.querySelectorAll('.dsh_notify_pickerTrigger')[0] as HTMLButtonElement
+    await act(async () => {
+      picker.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const author = [...container.querySelectorAll('.dsh_notify_pickerHeader')]
+      .find(node => (node.textContent ?? '').includes(zh['settings.sounds.groupAuthor']))
+    await act(async () => {
+      author?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const labels = [...container.querySelectorAll('.dsh_notify_pickerOption')].map(node => node.textContent ?? '')
+    expect(labels).toContain(zh['settings.sounds.author.completed'])
+    // A file the user adds to sounds/ keeps its own name.
+    expect(labels).toContain('mine')
+  })
+
   it('renames a custom sound and moves the situations to the new id', async () => {
     const library: SoundLibrary = {
       author: [],

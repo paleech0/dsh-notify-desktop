@@ -230,6 +230,19 @@ function needsFfmpeg(id: SoundId): boolean {
   return !id.toLowerCase().endsWith('.wav')
 }
 
+/**
+ * Locale keys for the sounds shipped in the plugin's `sounds/` folder.
+ *
+ * Keyed by the stored id, which is the file name the host reports, so only the
+ * four shipped files are translated and anything else falls back to its name.
+ */
+const AUTHOR_SOUND_KEYS: Readonly<Record<string, NotifyKey>> = {
+  'author:1-任务正常结束.wav': 'settings.sounds.author.completed',
+  'author:2-任务出错.wav': 'settings.sounds.author.error',
+  'author:3-需要你处理.wav': 'settings.sounds.author.attention',
+  'author:4-超时催办.wav': 'settings.sounds.author.reminder',
+}
+
 /** Display label of each reminder style. */
 const REMIND_MODE_KEYS: Record<ReminderMode, NotifyKey> = {
   once: 'settings.remind.mode.once',
@@ -299,9 +312,17 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
    * name (without the extension), which is what the picker lists too.
    */
   const soundLabel = (id: SoundId): string => {
-    if (id.startsWith('author:') || id.startsWith('custom:')) {
+    if (id.startsWith('author:')) {
+      // The shipped sounds are named in the repo's own language; their display
+      // name comes from the locale table so an English UI does not show Chinese
+      // file names. A file the user drops into sounds/ keeps its own name.
+      const known = AUTHOR_SOUND_KEYS[id]
+      if (known !== undefined) return t(known)
       const item = library.author.find(entry => entry.id === id)
-        ?? library.custom.find(entry => entry.id === id)
+      return item === undefined ? id : item.name
+    }
+    if (id.startsWith('custom:')) {
+      const item = library.custom.find(entry => entry.id === id)
       return item === undefined ? id : item.name
     }
     const key = SOUND_LABEL_KEYS[id]

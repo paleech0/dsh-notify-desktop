@@ -13,6 +13,8 @@
   或**常驻提醒**（补一条一直停留在屏幕上、直到你点「知道了」的通知，音效只响一次）。默认仍是只提醒一次，已有设置不变。
 - **自定义音效可以重命名**（中文名可用），用到它的情况自动跟随新名字。
 - **修好非 wav 自定义音效不出声**（0.2.4 起）。
+- **作者音效的名字跟着界面语言走**：中文界面显示「任务正常结束」，英文界面显示 Task completed，不再是固定中文文件名。
+- **催办方式与延时框统一了样式并对齐**；自定义音效每条改成两行（名称/大小 + 操作按钮），长文件名不再把按钮挤成一条。
 
 ## 0.2.4 更新
 
@@ -102,7 +104,9 @@
 
 勾选情况后，下面的「通知自定义」会实时出现对应行；取消勾选只是隐藏，已配的音效和文本都保留，重新勾选回来还在。
 
-<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize-zh.png" width="620" alt="卡三「通知自定义」：每个情况的音效、文本、预览与两个折叠库">
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-customize-zh.png" width="620" alt="卡三「通知自定义」：每个情况的音效、文本与预览">
+
+<img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-libraries-zh.png" width="620" alt="自定义音效与自定义文本两个折叠库">
 
 ## 音效
 

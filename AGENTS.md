@@ -9,7 +9,8 @@
 2. **peer 依赖精确对齐运行时**。运行时 = `<DSH desktop install>`（**0.2.2-rc.1**；devDependencies 仍锁 0.2.0-rc.2 仅供构建/类型检查，且 0.2.2 运行时镜像不带 `.d.ts`）。装/升任何 `@deepseek-ai/*` 前
    用 `"<DSH desktop install>\resources\runtime\cli\bin\dsh.cmd" --version` 核对；对不上就停手问人。
 3. **`lib/` 必须随源码提交**（profile 以链接方式装配，不发 npm 包）。
-4. **`pnpm run check` 必须全绿**（typecheck + vitest + build）才能提交。
+4. **`pnpm run check` 必须全绿**（typecheck + vitest + build + smoke）才能提交。
+   `scripts/smoke.mjs` 直接断言 `lib/` 产物里带着本次承诺的功能字符串，并检查宿主 bundle **只 import node 内置模块**（铁律 6）。
 5. **装配只走桌面端自带 CLI**：
    `dsh.cmd plugin --profile desktop add "link:<repo>"`
    （**用 `link:`**，与 dsh-golden-caret 同形式：本体留在本地磁盘，profile 里只登记一条链接）；
@@ -141,7 +142,7 @@ Toast 身份**不许写死**：候选在 `src/aumid.ts`（旧 `electron.app.Deep
 
 ## 发版
 
-- npm 包名 `dsh-notify-desktop`（0.2.3 与 0.2.2 于 2026-11-06 发布；0.2.1 于 2026-10-31 发布；0.2.0 于 2026-10-25 发布；0.1.1 于 2026-10-18、0.1.0 于 2026-10-17 发布）。发版走 GitHub Release：`.github/workflows/publish.yml` 用 **OIDC trusted publishing** 发布，不需要 token 或 2FA。
+- npm 包名 `dsh-notify-desktop`（0.2.5 于 2026-11-07 发布；0.2.4 / 0.2.3 / 0.2.2 于 2026-11-06 发布；0.2.1 于 2026-10-31 发布；0.2.0 于 2026-10-25 发布；0.1.1 于 2026-10-18、0.1.0 于 2026-10-17 发布）。发版走 GitHub Release：`.github/workflows/publish.yml` 用 **OIDC trusted publishing** 发布，不需要 token 或 2FA。
 - npm 包页 Settings → Trusted Publisher 绑定 `paleech0/dsh-notify-desktop` + `publish.yml`（Allow npm publish）。
 - 手动流程：`pnpm run check` → 提交 → `git tag v<version>` 推送 → 在 GitHub 创建 Release（workflow 自动发布；该版本已存在时会自动跳过）。
 - 兜底：网页 staged 发布 + 账号 2FA（security key）批准（2026-10 实测；bypass-2FA token 直接发布 2027-01 起停用）。

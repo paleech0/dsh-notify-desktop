@@ -6,6 +6,18 @@ and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.
 
 ## [0.2.5] - 2026-11-07
 
+### Fixed
+
+- The shipped author sounds are named in the plugin's own language. Their titles come from the .wav file names,
+  which are Chinese, so an English UI used to list "1-任务正常结束" — the picker now reads the locale table. A file
+  dropped into `sounds/` by hand still shows its own name.
+- The empty custom-sound state now points at the right control ("展开下方的 自定义音效 以添加音效"): the previous
+  sentence told the user to press an "Add sound…" button they could not see until the card was expanded.
+- The reminder-style select and the delay field share one box style and one aligned column; the select used to be
+  smaller and dimmer than the field above it.
+- An imported sound is laid out on two lines (name + size, then its actions), so a long file name no longer pushes
+  the buttons into a full-width red block.
+
 ### Added
 
 - Three reminder styles for a long-unanswered wait: `once` (the previous behaviour, still the default), `repeat`

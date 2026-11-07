@@ -90,7 +90,9 @@ export function SoundPicker(props: SoundPickerProps): JSX.Element {
     {
       id: 'author',
       label: props.t('settings.sounds.groupAuthor'),
-      items: props.library.author.map(item => ({ id: item.id, label: item.name })),
+      // labelOf, not item.name: the shipped sounds carry Chinese file names and
+      // borrow their display name from the locale table.
+      items: props.library.author.map(item => ({ id: item.id, label: props.labelOf(item.id) })),
       empty: props.t('settings.sounds.authorEmpty'),
     },
     {
