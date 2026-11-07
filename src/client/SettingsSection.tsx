@@ -59,6 +59,8 @@ export interface NotifySectionInjected {
   importSound: (file: string) => Promise<string | null>
   /** Delete one imported custom sound. */
   deleteSound: (id: string) => Promise<boolean>
+  /** Rename one imported sound; resolves to its new id, or null when refused. */
+  renameSound: (id: string, name: string) => Promise<string | null>
   /** Read the transcoded-wav cache size (null when the host is unreachable). */
   cacheInfo: () => Promise<SoundCacheInfo | null>
   /** Empty the transcoded-wav cache. */
@@ -253,6 +255,8 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
   const [library, setLibrary] = useState<SoundLibrary>({ author: [], custom: [], ffmpeg: true })
   const [libraryNote, setLibraryNote] = useState<string | null>(null)
   const [soundConfirm, setSoundConfirm] = useState<string | null>(null)
+  const [renaming, setRenaming] = useState<string | null>(null)
+  const [renameDraft, setRenameDraft] = useState('')
   const [soundsOpen, setSoundsOpen] = useState(false)
   const [textsOpen, setTextsOpen] = useState(false)
   const t = props.tr
@@ -327,6 +331,34 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
       }
     }
     if (changed) props.set({ sounds: next })
+    await refreshLibrary()
+  }
+
+  /** Rename one imported sound and carry the new id into every situation. */
+  const commitRename = async (id: string): Promise<void> => {
+    const next = renameDraft.trim()
+    if (next === '') {
+      setLibraryNote(t('settings.soundLibrary.renameEmpty'))
+      return
+    }
+    const renamed = await props.renameSound(id, next)
+    if (renamed === null) {
+      setLibraryNote(t('settings.soundLibrary.renameFailed'))
+      return
+    }
+    setRenaming(null)
+    // The stored id names the file, so a rename has to follow it — otherwise the
+    // situations would keep pointing at a file that no longer exists.
+    const nextSounds: Record<NotifyScenario, SoundId> = { ...settings.sounds }
+    let changed = false
+    for (const scenario of SCENARIO_IDS) {
+      if (nextSounds[scenario] === id) {
+        nextSounds[scenario] = renamed
+        changed = true
+      }
+    }
+    if (changed) props.set({ sounds: nextSounds })
+    setLibraryNote(t('settings.soundLibrary.renamed'))
     await refreshLibrary()
   }
 
@@ -592,18 +624,67 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
             <ul className="dsh_notify_soundList">
               {library.custom.map(item => (
                 <li key={item.id} className="dsh_notify_soundItem">
-                  <span className="dsh_notify_soundItemName">{item.name}</span>
-                  <span className="dsh_notify_soundItemSize">{formatBytes(item.bytes)}</span>
-                  <button
-                    type="button"
-                    className="dsh_notify_iconButton dsh_notify_danger"
-                    onClick={() => {
-                      setLibraryNote(null)
-                      setSoundConfirm(item.id)
-                    }}
-                  >
-                    {t('settings.soundLibrary.remove')}
-                  </button>
+                  {renaming === item.id ? (
+                    <>
+                      <input
+                        className="dsh_notify_renameInput"
+                        value={renameDraft}
+                        maxLength={60}
+                        aria-label={t('settings.soundLibrary.rename')}
+                        onChange={event => {
+                          setRenameDraft(event.target.value)
+                        }}
+                        onKeyDown={event => {
+                          if (event.key === 'Enter') void commitRename(item.id)
+                          if (event.key === 'Escape') setRenaming(null)
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="dsh_notify_button"
+                        onClick={() => {
+                          void commitRename(item.id)
+                        }}
+                      >
+                        {t('settings.soundLibrary.renameSave')}
+                      </button>
+                      <button
+                        type="button"
+                        className="dsh_notify_button"
+                        onClick={() => {
+                          setRenaming(null)
+                        }}
+                      >
+                        {t('settings.textEditor.cancel')}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="dsh_notify_soundItemName">{item.name}</span>
+                      <span className="dsh_notify_soundItemSize">{formatBytes(item.bytes)}</span>
+                      <button
+                        type="button"
+                        className="dsh_notify_iconButton"
+                        onClick={() => {
+                          setLibraryNote(null)
+                          setRenaming(item.id)
+                          setRenameDraft(item.name)
+                        }}
+                      >
+                        {t('settings.soundLibrary.rename')}
+                      </button>
+                      <button
+                        type="button"
+                        className="dsh_notify_iconButton dsh_notify_danger"
+                        onClick={() => {
+                          setLibraryNote(null)
+                          setSoundConfirm(item.id)
+                        }}
+                      >
+                        {t('settings.soundLibrary.remove')}
+                      </button>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

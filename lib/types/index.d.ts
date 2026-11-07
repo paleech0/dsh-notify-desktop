@@ -13,6 +13,17 @@ export declare function focusDesktopWindow(): void;
 /** The diagnostics route (GET) used while bringing the projection seam up. */
 export declare const DEBUG_ROUTE = "/dsh-notify/debug";
 /**
+ * Rename one imported custom sound, keeping its extension.
+ * @param id - the 'custom:<file>' id to rename.
+ * @param raw - the new display name the user typed.
+ * @returns the file's new name, or a problem code.
+ */
+export declare function renameSound(id: unknown, raw: unknown): {
+    name: string;
+} | {
+    problem: string;
+};
+/**
  * The identity half of the child script: pick the first candidate the OS
  * actually knows.
  *

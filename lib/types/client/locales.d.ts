@@ -25,7 +25,7 @@ export declare const zh: {
     readonly 'settings.mode.sound': "仅提示音";
     readonly 'settings.mode.soundDesc': "只播该情况所选音效，不弹窗。";
     readonly 'settings.customize.title': "通知自定义";
-    readonly 'settings.customize.desc': "给每个已勾选的情况分别挑选音效和弹窗文本；点「预览效果」马上看/听。没勾的情况不会出现在这里，去上面的「选择接收以下哪种情况的通知」里勾选。音效来自内置列表，或下方「自定义音效」里导入的文件；删除某个文件时，用到它的情况会自动改为默认音效。";
+    readonly 'settings.customize.desc': "给每个已勾选的情况分别挑选音效和弹窗文本；点「预览效果」马上看/听。没勾的情况不会出现在这里，新增情况请在上面的「选择接收以下哪种情况的通知」里勾选。音效来自内置列表，或下方「自定义音效」里导入的文件；删除某个文件时，用到它的情况会自动改为默认音效。";
     readonly 'settings.scenario.sound': "音效";
     readonly 'settings.scenario.text': "文本";
     readonly 'settings.scenario.preview': "预览效果";
@@ -62,6 +62,11 @@ export declare const zh: {
     readonly 'settings.soundLibrary.addFailed': "操作失败：宿主没有响应，或这个格式不支持";
     readonly 'settings.soundLibrary.missing': "这个音效文件不在了，重新选一个或再添加一次";
     readonly 'settings.soundLibrary.remove': "删除";
+    readonly 'settings.soundLibrary.rename': "重命名";
+    readonly 'settings.soundLibrary.renameSave': "保存";
+    readonly 'settings.soundLibrary.renamed': "已重命名";
+    readonly 'settings.soundLibrary.renameEmpty': "名称不能为空";
+    readonly 'settings.soundLibrary.renameFailed': "重命名失败：名字不能用，或宿主没有响应";
     readonly 'settings.soundLibrary.removeConfirm': "删除「{name}」？插件里的这份副本会被移除，用到它的情况自动改为默认音效。";
     readonly 'settings.soundLibrary.desc': "点「添加音效…」选一个音频文件，插件会复制一份到 {path} 作为音效本体，之后原文件移动或删除都不影响。支持 .wav / .mp3 / .m4a / .aac / .wma / .flac / .ogg / .opus；除 .wav 外的格式要先转成 wav 才能播放，转出的临时文件计入下面的「转换缓存」。";
     readonly 'settings.soundLibrary.ffmpegMissing': "本机未安装 ffmpeg，mp3 / m4a / aac / wma / flac / ogg / opus 格式的音效不会播放（.wav 不受影响）。";
@@ -215,6 +220,11 @@ export declare const en: {
     'settings.soundLibrary.addFailed': string;
     'settings.soundLibrary.missing': string;
     'settings.soundLibrary.remove': string;
+    'settings.soundLibrary.rename': string;
+    'settings.soundLibrary.renameSave': string;
+    'settings.soundLibrary.renamed': string;
+    'settings.soundLibrary.renameEmpty': string;
+    'settings.soundLibrary.renameFailed': string;
     'settings.soundLibrary.removeConfirm': string;
     'settings.soundLibrary.desc': string;
     'settings.soundLibrary.ffmpegMissing': string;

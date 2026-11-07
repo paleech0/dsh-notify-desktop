@@ -8,6 +8,7 @@ import type { SoundLibrary } from '../types.ts'
 import {
   DELETE_SOUND_ROUTE,
   FOCUS_HEADER,
+  RENAME_SOUND_ROUTE,
   FOREGROUND_ROUTE,
   HOST_TOAST_ROUTE,
   IMPORT_SOUND_ROUTE,
@@ -289,6 +290,27 @@ export function importSound(file: string): Promise<string | null> {
     .then((payload: unknown) => {
       const name = (payload as { name?: unknown } | null)?.name
       return typeof name === 'string' ? name : null
+    }, () => null)
+}
+
+/**
+ * Rename one imported custom sound.
+ * @param id - the 'custom:<file>' id.
+ * @param name - the new display name (the host keeps the extension).
+ * @returns the new id, or null when the host refused the name.
+ */
+export function renameSound(id: string, name: string): Promise<string | null> {
+  const fetchImpl = globalThis.fetch
+  if (fetchImpl === undefined) return Promise.resolve(null)
+  return fetchImpl(RENAME_SOUND_ROUTE, {
+    method: 'POST',
+    headers: { [FOCUS_HEADER]: '1', 'content-type': 'application/json' },
+    body: JSON.stringify({ id, name }),
+  })
+    .then(response => (response.ok ? response.json() : null))
+    .then((payload: unknown) => {
+      const value = payload as { ok?: unknown; name?: unknown } | null
+      return value?.ok === true && typeof value.name === 'string' ? 'custom:' + value.name : null
     }, () => null)
 }
 

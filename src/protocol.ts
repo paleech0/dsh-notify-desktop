@@ -84,6 +84,9 @@ export const IMPORT_SOUND_ROUTE = '/dsh-notify/import-sound'
 /** Remove one imported custom sound. */
 export const DELETE_SOUND_ROUTE = '/dsh-notify/delete-sound'
 
+/** Rename one imported custom sound, keeping its extension. */
+export const RENAME_SOUND_ROUTE = '/dsh-notify/rename-sound'
+
 /** Ask the host to open a Windows file picker and return the chosen wav path. */
 export const PICK_FILE_ROUTE = '/dsh-notify/pick-file'
 

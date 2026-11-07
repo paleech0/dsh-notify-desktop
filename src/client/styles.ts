@@ -85,6 +85,18 @@ export const cssText = `
   border-left: 2px solid rgba(245, 165, 36, 0.45);
 }
 .dsh_notify_warnHint { opacity: 0.85; margin-top: 2px; }
+/* Inline rename field: sits where the row's name sits, so the list does not jump. */
+.dsh_notify_renameInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  font-size: 12px;
+  color: inherit;
+  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.08));
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
+  border-radius: 6px;
+  padding: 3px 8px;
+}
 .dsh_notify_cacheText { flex: 1 1 auto; font-size: 12px; opacity: 0.8; font-variant-numeric: tabular-nums; }
 .dsh_notify_rowDesc { font-size: 12px; opacity: 0.74; line-height: 1.55; }
 .dsh_notify_rowPrefix { font-size: 11px; opacity: 0.62; }

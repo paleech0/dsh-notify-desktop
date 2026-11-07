@@ -71,6 +71,8 @@ export declare const SOUND_LIBRARY_ROUTE = "/dsh-notify/sound-library";
 export declare const IMPORT_SOUND_ROUTE = "/dsh-notify/import-sound";
 /** Remove one imported custom sound. */
 export declare const DELETE_SOUND_ROUTE = "/dsh-notify/delete-sound";
+/** Rename one imported custom sound, keeping its extension. */
+export declare const RENAME_SOUND_ROUTE = "/dsh-notify/rename-sound";
 /** Ask the host to open a Windows file picker and return the chosen wav path. */
 export declare const PICK_FILE_ROUTE = "/dsh-notify/pick-file";
 /**

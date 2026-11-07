@@ -12,12 +12,15 @@ describe('host toast identity resolution', () => {
 
   it('transcodes into a .part file and only promotes a finished one', () => {
     const script = MEDIA_SCRIPT_LINES.join('; ')
-    const write = script.indexOf('-acodec pcm_s16le $partial')
+    const write = script.indexOf('-acodec pcm_s16le -f wav $partial')
     const promote = script.indexOf('Move-Item -LiteralPath $partial')
     // A transcode killed by the eight-second cap must not become the cache.
     expect(write).toBeGreaterThanOrEqual(0)
     expect(promote).toBeGreaterThan(write)
     expect(script).not.toContain('-acodec pcm_s16le $cached')
+    // ffmpeg picks the container from the extension, and ".wav.part" has none:
+    // without "-f wav" every non-wav sound silently stops working (0.2.3 bug).
+    expect(script).toContain('-f wav $partial')
   })
 
   it('keeps the identity list out of the script and never hard-codes one id', () => {

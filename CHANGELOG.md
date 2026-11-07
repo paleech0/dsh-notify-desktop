@@ -4,6 +4,21 @@ All notable changes to this plugin are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2026-11-07
+
+### Fixed
+
+- Non-wav custom sounds play again. 0.2.3 started transcoding into `.wav.part` without `-f wav`; ffmpeg infers the
+  container from the file extension, refused the output, and every mp3 / m4a / flac sound went silent with no cache
+  written and nothing in the UI. The host now also records a child process that exits abnormally in the diagnostics
+  ring, so this class of failure is visible instead of silent.
+- Renaming a custom sound keeps the extension and accepts non-ASCII names: the sanitizer only replaces the characters
+  Windows refuses, where it used to flatten anything outside `[A-Za-z0-9 ._-]` to underscores.
+
+### Added
+
+- Custom sounds can be renamed from the settings card; every situation that used the file follows its new id.
+
 ## [0.2.3] - 2026-11-06
 
 ### Added

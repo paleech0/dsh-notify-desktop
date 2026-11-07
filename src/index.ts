@@ -10,7 +10,7 @@
  */
 import { spawn, type ChildProcess } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from 'node:fs'
 import { basename, dirname, extname, isAbsolute, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Context } from '@deepseek-ai/cordis'
@@ -26,6 +26,7 @@ import {
   QUESTIONS_ROUTE,
   SOUND_LIBRARY_ROUTE,
   SOUND_CACHE_ROUTE,
+  RENAME_SOUND_ROUTE,
   SOUND_ROUTE,
   REPORT_LIMIT,
   REPORT_ROUTE,
@@ -425,6 +426,24 @@ function wavCachePath(source: string): string {
 /** A sound file name must be a plain name: no separators, no traversal. */
 const SAFE_SOUND_NAME = /^[^\\/:*?"<>|]+$/
 
+/** The characters Windows refuses in a file name, plus control codes. */
+const UNSAFE_FILE_CHARS = /[\\/:*?"<>|\u0000-\u001f]/g
+
+/**
+ * Turn a display name into a file-name stem.
+ *
+ * Only the characters Windows refuses are replaced: a Chinese name stays
+ * Chinese, which matters because the sounds are the user's own files.
+ * @param raw - the name to clean.
+ * @returns the stem, or '' when nothing usable is left.
+ */
+function soundNameStem(raw: string): string {
+  const cleaned = raw.replace(UNSAFE_FILE_CHARS, '_').replaceAll(/\s+/g, ' ').trim().slice(0, 60)
+  // Nothing but replacements left means the name carried no usable character.
+  if (cleaned === '.' || cleaned === '..' || /^[\s_]*$/.test(cleaned)) return ''
+  return cleaned
+}
+
 /** Where the user's imported sounds live: one playable file per sound. */
 function customSoundDir(): string {
   const root = process.env['LOCALAPPDATA'] ?? process.env['TEMP'] ?? '.'
@@ -489,7 +508,7 @@ function importSound(source: string): { name: string } | { error: string } {
   const lower = source.toLowerCase()
   if (!CUSTOM_EXTENSIONS.some(extension => lower.endsWith(extension))) return { error: 'unsupported format' }
   const extension = extname(source)
-  const base = basename(source, extension).replace(/[^A-Za-z0-9 ._-]/g, '_').trim() || 'sound'
+  const base = soundNameStem(basename(source, extension)) || 'sound'
   const dir = customSoundDir()
   mkdirSync(dir, { recursive: true })
   let name = base + extension
@@ -514,6 +533,41 @@ function deleteSound(id: unknown): boolean {
     return false
   }
 }
+/**
+ * Rename one imported custom sound, keeping its extension.
+ * @param id - the 'custom:<file>' id to rename.
+ * @param raw - the new display name the user typed.
+ * @returns the file's new name, or a problem code.
+ */
+export function renameSound(id: unknown, raw: unknown): { name: string } | { problem: string } {
+  if (typeof id !== 'string' || !id.startsWith('custom:')) return { problem: 'unknown sound' }
+  const file = id.slice(7)
+  if (!SAFE_SOUND_NAME.test(file)) return { problem: 'unknown sound' }
+  const directory = customSoundDir()
+  const source = join(directory, file)
+  if (!existsSync(source)) return { problem: 'missing' }
+  if (typeof raw !== 'string') return { problem: 'bad name' }
+  const extension = extname(file)
+  const typed = raw.toLowerCase().endsWith(extension.toLowerCase())
+    ? raw.slice(0, -extension.length)
+    : raw
+  const base = soundNameStem(typed)
+  if (base === '') return { problem: 'bad name' }
+  let name = base + extension
+  if (name !== file) {
+    for (let index = 2; existsSync(join(directory, name)); index += 1) {
+      name = base + ' ' + String(index) + extension
+    }
+  }
+  if (name === file) return { name: file }
+  try {
+    renameSync(source, join(directory, name))
+  } catch {
+    return { problem: 'rename failed' }
+  }
+  return { name }
+}
+
 /**
  * Read a request body as UTF-8 text.
  * @param req - the raw request.
@@ -604,6 +658,35 @@ function handleDeleteSound(req: IncomingMessage, res: ServerResponse): void {
     res.end(JSON.stringify({ ok }))
   })
 }
+/**
+ * Answer the rename route: give one imported custom sound a new display name.
+ * @param req - the raw request (JSON body: { id, name }).
+ * @param res - the raw response.
+ */
+function handleRenameSound(req: IncomingMessage, res: ServerResponse): void {
+  if (req.method !== 'POST' || req.headers[FOCUS_HEADER] === undefined) {
+    res.writeHead(405)
+    res.end()
+    return
+  }
+  readBody(req, body => {
+    let id: unknown = ''
+    let name: unknown = ''
+    try {
+      const parsed = JSON.parse(body) as { id?: unknown; name?: unknown }
+      id = parsed.id
+      name = parsed.name
+    } catch {
+      // A malformed body fails below.
+    }
+    const result = renameSound(id, name)
+    const ok = 'name' in result
+    note('rename sound: ' + String(id) + ' -> ' + String(name) + ' = ' + String(ok))
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify(ok ? { ok: true, name: result.name } : { ok: false, problem: result.problem }))
+  })
+}
+
 /**
  * Answer the sound-cache route: GET reports what the cache costs, POST empties
  * it. These files are the plugin's own transcoding output, rebuildable on the
@@ -852,7 +935,7 @@ export const MEDIA_SCRIPT_LINES: readonly string[] = [
   '      if ($cached -and -not (Test-Path -LiteralPath $cached) -and $env:DSH_NOTIFY_FFMPEG) {',
   '        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $cached) | Out-Null',
   '        $partial = $cached + ".part"',
-  '        & $env:DSH_NOTIFY_FFMPEG -y -loglevel error -i $media -ac 2 -ar 44100 -acodec pcm_s16le $partial | Out-Null',
+  '        & $env:DSH_NOTIFY_FFMPEG -y -loglevel error -i $media -ac 2 -ar 44100 -acodec pcm_s16le -f wav $partial | Out-Null',
   '        if ((Test-Path -LiteralPath $partial) -and -not (Test-Path -LiteralPath $cached)) { Move-Item -LiteralPath $partial -Destination $cached -Force }',
   '      }',
   '      if ($cached -and (Test-Path -LiteralPath $cached)) { $media = $cached }',
@@ -933,13 +1016,23 @@ function showHostToast(title: string, body: string, sound: unknown, customFile?:
     // child starts and exits cleanly but Windows never shows its toast
     // (measured on this machine, three variants, one toast).
     let output = ''
+    let errors = ''
     child.stdout?.on('data', (chunk: Buffer) => {
       output = (output + chunk.toString()).slice(-4096)
     })
+    // Drained, but remembered: a transcode or playback error only ever shows up
+    // here, and swallowing it made a broken audio path indistinguishable from a
+    // working one.
+    child.stderr?.on('data', (chunk: Buffer) => {
+      errors = (errors + chunk.toString()).slice(-2048)
+    })
     child.stderr?.resume()
-    child.on('close', () => {
+    child.on('close', (code, signal) => {
       const used = parseAumidLine(output) ?? 'unknown'
       note('host-toast aumid=' + used + ' candidates=' + candidates.join('|'))
+      if (signal === null && typeof code === 'number' && code !== 0) {
+        note('host-toast failed exit=' + String(code) + ' ' + errors.replaceAll(/\s+/g, ' ').trim().slice(0, 240))
+      }
     })
     child.on('error', error => {
       clientReports.push(new Date().toISOString().slice(11, 19) + ' host-toast spawn failed: ' + String(error))
@@ -1295,6 +1388,10 @@ export async function apply(ctx: Context): Promise<void> {
     scoped.effect(
       () => scoped.webServer.register({ kind: 'exact', path: DELETE_SOUND_ROUTE, handler: handleDeleteSound }),
       'dsh-notify-desktop: sound delete route',
+    )
+    scoped.effect(
+      () => scoped.webServer.register({ kind: 'exact', path: RENAME_SOUND_ROUTE, handler: handleRenameSound }),
+      'dsh-notify-desktop: sound rename route',
     )
     scoped.effect(
       () => scoped.webServer.register({ kind: 'exact', path: SOUND_CACHE_ROUTE, handler: handleSoundCache }),

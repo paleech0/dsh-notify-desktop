@@ -119,6 +119,13 @@ export declare function soundLibrary(): Promise<SoundLibrary>;
  */
 export declare function importSound(file: string): Promise<string | null>;
 /**
+ * Rename one imported custom sound.
+ * @param id - the 'custom:<file>' id.
+ * @param name - the new display name (the host keeps the extension).
+ * @returns the new id, or null when the host refused the name.
+ */
+export declare function renameSound(id: string, name: string): Promise<string | null>;
+/**
  * Delete one imported custom sound.
  * @param id - the 'custom:<file>' id.
  * @returns true when the host removed it.

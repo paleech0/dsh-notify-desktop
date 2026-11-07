@@ -76,6 +76,7 @@ function props(overrides: Partial<NotifySectionProps> = {}, activeLocale = 'zh')
     pickFile: () => Promise.resolve(''),
     importSound: () => Promise.resolve('mine'),
     deleteSound: () => Promise.resolve(true),
+    renameSound: (_id: string, name: string) => Promise.resolve('custom:' + name + '.wav'),
     cacheInfo: () => Promise.resolve({ files: 0, bytes: 0 }),
     clearCache: () => Promise.resolve({ files: 0, bytes: 0 }),
     tr: createTranslator(language),
@@ -461,6 +462,44 @@ describe('notification settings section', () => {
       .map(node => node.textContent ?? '')
     expect(titles[0]).toBe(en['settings.title'])
     expect(buttons(container, en['settings.test.button'])).toHaveLength(1)
+  })
+
+  it('renames a custom sound and moves the situations to the new id', async () => {
+    const library: SoundLibrary = {
+      author: [],
+      custom: [{ id: 'custom:mine.wav', name: 'mine', file: 'mine.wav', bytes: 1024 }],
+      ffmpeg: true,
+    }
+    const calls: string[] = []
+    const { container, all } = await render({
+      loadLibrary: () => Promise.resolve(library),
+      renameSound: (id: string, name: string) => {
+        calls.push(id + ' -> ' + name)
+        return Promise.resolve('custom:' + name + '.wav')
+      },
+    } as Partial<NotifySectionProps>)
+    await act(async () => {
+      all.set({ sounds: { ...DEFAULT_SETTINGS.sounds, completed: 'custom:mine.wav' } })
+    })
+    const header = [...container.querySelectorAll('.dsh_notify_collapseHeader')]
+      .find(node => (node.textContent ?? '').includes(zh['settings.soundLibrary.title']))
+    await act(async () => {
+      header?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const renameButton = buttons(container, zh['settings.soundLibrary.rename'])[0]
+    await act(async () => {
+      renameButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const input = container.querySelector('.dsh_notify_renameInput') as HTMLInputElement
+    await typeInto(input, '铃声')
+    const save = buttons(container, zh['settings.soundLibrary.renameSave'])[0]
+    await act(async () => {
+      save?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(calls).toEqual(['custom:mine.wav -> 铃声'])
+    expect(all.store.getSnapshot().sounds['completed']).toBe('custom:铃声.wav')
   })
 
   it('switches situations back to their default when their sound is deleted', async () => {

@@ -26,6 +26,8 @@ export interface NotifySectionInjected {
     importSound: (file: string) => Promise<string | null>;
     /** Delete one imported custom sound. */
     deleteSound: (id: string) => Promise<boolean>;
+    /** Rename one imported sound; resolves to its new id, or null when refused. */
+    renameSound: (id: string, name: string) => Promise<string | null>;
     /** Read the transcoded-wav cache size (null when the host is unreachable). */
     cacheInfo: () => Promise<SoundCacheInfo | null>;
     /** Empty the transcoded-wav cache. */
