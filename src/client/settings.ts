@@ -15,6 +15,7 @@ import {
   DEFAULT_TITLE_TEMPLATE,
   NOTIFY_MODES,
   PLUGIN_LANGUAGES,
+  REMINDER_MODES,
   SOUND_IDS,
   type LegacyTextTemplates,
   type NotifyMode,
@@ -22,6 +23,7 @@ import {
   type NotifySettings,
   type NotifySounds,
   type NotifyTexts,
+  type ReminderMode,
   type SoundId,
 } from '../types.ts'
 import {
@@ -65,6 +67,13 @@ function clampMinutes(value: unknown): number {
 /** One delivery mode, or the default for anything the catalog does not name. */
 function clampMode(value: unknown): NotifyMode {
   return (NOTIFY_MODES as readonly string[]).includes(value as string) ? value as NotifyMode : DEFAULT_SETTINGS.mode
+}
+
+/** One reminder behaviour, or `once` for anything the catalog does not name. */
+function clampReminderMode(value: unknown): ReminderMode {
+  return (REMINDER_MODES as readonly string[]).includes(value as string)
+    ? value as ReminderMode
+    : DEFAULT_SETTINGS.reminderMode
 }
 
 /** One plugin language, or `auto` for anything the catalog does not name. */
@@ -199,6 +208,8 @@ export function readSettings(storage: SettingsStorage | undefined = ambientStora
       notifyQuestion: clampBoolean(saved['notifyQuestion'], DEFAULT_SETTINGS.notifyQuestion),
       notifyPlanReview: clampBoolean(saved['notifyPlanReview'], DEFAULT_SETTINGS.notifyPlanReview),
       remindAfterMinutes: clampMinutes(saved['remindAfterMinutes']),
+      reminderMode: clampReminderMode(saved['reminderMode']),
+      remindEveryMinutes: clampMinutes(saved['remindEveryMinutes']),
       language: clampLanguage(saved['language']),
     }
   } catch {
@@ -251,6 +262,12 @@ export function createSettingsStore(storage: SettingsStorage | undefined = ambie
         remindAfterMinutes: patch.remindAfterMinutes === undefined
           ? snapshot.remindAfterMinutes
           : clampMinutes(patch.remindAfterMinutes),
+        reminderMode: patch.reminderMode === undefined
+          ? snapshot.reminderMode
+          : clampReminderMode(patch.reminderMode),
+        remindEveryMinutes: patch.remindEveryMinutes === undefined
+          ? snapshot.remindEveryMinutes
+          : clampMinutes(patch.remindEveryMinutes),
         sounds: patch.sounds === undefined ? snapshot.sounds : clampSounds(patch.sounds),
         texts: patch.texts === undefined ? snapshot.texts : clampTexts(patch.texts),
         legacyText: patch.legacyText === undefined ? snapshot.legacyText : patch.legacyText,

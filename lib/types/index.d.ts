@@ -53,6 +53,20 @@ export declare const TOAST_SCRIPT_LINES: readonly string[];
  */
 export declare const MEDIA_SCRIPT_LINES: readonly string[];
 /**
+ * Build the toast XML for one notification.
+ *
+ * Split out from the spawn so the sticky shape (and its load-bearing dismiss
+ * button) can be asserted without starting PowerShell.
+ * @param title - toast headline.
+ * @param body - toast body, already reduced to one line.
+ * @param audio - the `<audio>` element chosen for this toast.
+ * @param sticky - the dismiss-button label when the toast must stay on screen.
+ * @returns the complete toast XML.
+ */
+export declare function buildToastXml(title: string, body: string, audio: string, sticky?: {
+    readonly dismissLabel: string;
+}): string;
+/**
  * Register the projection and the routes.
  *
  * Async on purpose: 0.2.2 returns an awaitable registration handle, and awaiting

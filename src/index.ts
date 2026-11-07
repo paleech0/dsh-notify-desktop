@@ -970,6 +970,41 @@ function trackSoundPlayer(child: ChildProcess): void {
 }
 
 /**
+ * Build the toast XML for one notification.
+ *
+ * Split out from the spawn so the sticky shape (and its load-bearing dismiss
+ * button) can be asserted without starting PowerShell.
+ * @param title - toast headline.
+ * @param body - toast body, already reduced to one line.
+ * @param audio - the `<audio>` element chosen for this toast.
+ * @param sticky - the dismiss-button label when the toast must stay on screen.
+ * @returns the complete toast XML.
+ */
+export function buildToastXml(
+  title: string,
+  body: string,
+  audio: string,
+  sticky?: { readonly dismissLabel: string },
+): string {
+  // A sticky toast is a Windows "reminder" scenario toast: it stays on screen
+  // until the user dismisses it. Measured on this machine: the scenario is
+  // silently ignored unless the toast also carries a background/system action,
+  // so the dismiss button is load-bearing, not decoration. `system` needs no
+  // COM activator registered for the app's identity, which a plugin cannot do.
+  const head = sticky === undefined
+    ? '<toast activationType="protocol" launch="dsh://open">'
+    : '<toast scenario="reminder" activationType="protocol" launch="dsh://open">'
+  const actions = sticky === undefined
+    ? ''
+    : '<actions><action content="' + xmlEscape(sticky.dismissLabel.slice(0, 40))
+      + '" activationType="system" arguments="dismiss"/></actions>'
+  return head + '<visual><binding template="ToastGeneric">'
+    + '<text>' + xmlEscape(title.slice(0, 120)) + '</text>'
+    + '<text>' + xmlEscape(body.replaceAll(/\s+/g, ' ').slice(0, 300)) + '</text>'
+    + '</binding></visual>' + audio + actions + '</toast>'
+}
+
+/**
  * Raise a Windows toast from the host process.
  *
  * The shell hands the click back through the app's own protocol handler
@@ -980,7 +1015,13 @@ function trackSoundPlayer(child: ChildProcess): void {
  * @param body - toast body (single line).
  * @param sound - the sound id the client chose, or a legacy boolean.
  */
-function showHostToast(title: string, body: string, sound: unknown, customFile?: unknown): void {
+function showHostToast(
+  title: string,
+  body: string,
+  sound: unknown,
+  customFile?: unknown,
+  sticky?: { readonly dismissLabel: string },
+): void {
   const chosen = hostSoundOf(sound, customFile)
   const audio = chosen.event === '' ? '<audio silent="true"/>' : '<audio src="' + chosen.event + '"/>'
   // Only a file sound needs these; resolving them lazily keeps the common
@@ -989,10 +1030,7 @@ function showHostToast(title: string, body: string, sound: unknown, customFile?:
   const wavCache = chosen.wav === undefined || chosen.wav.toLowerCase().endsWith('.wav')
     ? ''
     : wavCachePath(chosen.wav)
-  const xml = '<toast activationType="protocol" launch="dsh://open"><visual><binding template="ToastGeneric">'
-    + '<text>' + xmlEscape(title.slice(0, 120)) + '</text>'
-    + '<text>' + xmlEscape(body.replaceAll(/\s+/g, ' ').slice(0, 300)) + '</text>'
-    + '</binding></visual>' + audio + '</toast>'
+  const xml = buildToastXml(title, body, audio, sticky)
   const candidates = aumidCandidates(process.env[AUMID_OVERRIDE_ENV])
   const script = [...TOAST_SCRIPT_LINES, ...MEDIA_SCRIPT_LINES].join('; ')
   try {
@@ -1062,10 +1100,19 @@ function handleHostToast(req: IncomingMessage, res: ServerResponse): void {
   })
   req.on('end', () => {
     try {
-      const parsed = JSON.parse(body) as { title?: unknown; body?: unknown; sound?: unknown }
+      const parsed = JSON.parse(body) as {
+        title?: unknown
+        body?: unknown
+        sound?: unknown
+        sticky?: unknown
+        dismissLabel?: unknown
+      }
       const title = typeof parsed.title === 'string' ? parsed.title : 'DeepSeek Harness'
       const text = typeof parsed.body === 'string' ? parsed.body : ''
-      showHostToast(title, text, parsed.sound, (parsed as { file?: unknown }).file)
+      const sticky = parsed.sticky === true
+        ? { dismissLabel: typeof parsed.dismissLabel === 'string' && parsed.dismissLabel !== '' ? parsed.dismissLabel : 'OK' }
+        : undefined
+      showHostToast(title, text, parsed.sound, (parsed as { file?: unknown }).file, sticky)
       res.writeHead(204)
       res.end()
     } catch {

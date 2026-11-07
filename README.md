@@ -8,6 +8,14 @@ clicking it brings the DSH window back to the front.
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-en.png" width="620" alt="Card 1, Desktop notifications: the language switch in the top-right corner, the master switch, the test notification and the delivery mode">
 
+## What's new in 0.2.5
+
+- **Three reminder styles.** After "waiting longer than N minutes" you can now choose **Once**, **Repeat** (nudge every
+  M minutes until the wait is answered), or **Stay on screen** — a single toast that remains visible until you dismiss
+  it, with the sound played once. Once remains the default, so existing settings are unchanged.
+- **Custom sounds can be renamed**, Chinese names included.
+- **Non-wav custom sounds play again** (fixed in 0.2.4).
+
 ## What's new in 0.2.4
 
 - **Non-wav custom sounds play again.** 0.2.3 started transcoding into a `.part` file and forgot to name the output

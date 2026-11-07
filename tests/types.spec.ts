@@ -39,6 +39,8 @@ describe('notification contract', () => {
       notifyQuestion: true,
       notifyPlanReview: true,
       remindAfterMinutes: 10,
+      reminderMode: 'once',
+      remindEveryMinutes: 5,
       language: 'auto',
     })
   })

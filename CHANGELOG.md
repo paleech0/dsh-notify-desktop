@@ -4,6 +4,17 @@ All notable changes to this plugin are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - 2026-11-07
+
+### Added
+
+- Three reminder styles for a long-unanswered wait: `once` (the previous behaviour, still the default), `repeat`
+  (re-notifies every `remindEveryMinutes` until the wait is answered) and `sticky` (one reminder raised as a Windows
+  reminder-scenario toast that stays on screen until dismissed, with the sound played once).
+- `buildToastXml` is exported and covered: a sticky toast carries `scenario="reminder"` plus a `system` dismiss
+  button. Measured on this machine: without the button Windows ignores the scenario and the toast disappears after
+  the usual five seconds, so the button is load-bearing rather than decoration.
+
 ## [0.2.4] - 2026-11-07
 
 ### Fixed

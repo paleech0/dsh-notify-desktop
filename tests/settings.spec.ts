@@ -101,6 +101,15 @@ describe('notification settings store', () => {
     expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ remindAfterMinutes: 'x' }) })).remindAfterMinutes).toBe(10)
   })
 
+  it('defaults the reminder style to once and clamps the repeat interval', () => {
+    expect(readSettings(memory()).reminderMode).toBe('once')
+    expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ reminderMode: 'sticky' }) })).reminderMode).toBe('sticky')
+    expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ reminderMode: 'repeat' }) })).reminderMode).toBe('repeat')
+    expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ reminderMode: 'nope' }) })).reminderMode).toBe('once')
+    expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ remindEveryMinutes: 0 }) })).remindEveryMinutes).toBe(1)
+    expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ remindEveryMinutes: 9999 }) })).remindEveryMinutes).toBe(240)
+  })
+
   it('defaults the plugin language to auto and rejects unknown values', () => {
     expect(readSettings(memory()).language).toBe('auto')
     expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ language: 'en' }) })).language).toBe('en')

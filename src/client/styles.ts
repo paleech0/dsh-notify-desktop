@@ -85,17 +85,82 @@ export const cssText = `
   border-left: 2px solid rgba(245, 165, 36, 0.45);
 }
 .dsh_notify_warnHint { opacity: 0.85; margin-top: 2px; }
+/*
+ * The reminder block: a label column, then the controls. Both rows share the
+ * column so the delay box and the style box line up, and both controls are one
+ * style — the user read the old 11px dim select as a different kind of control.
+ */
+.dsh_notify_remindBlock { display: flex; flex-direction: column; gap: 9px; padding: 4px 0 2px; }
+.dsh_notify_remindRow {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.dsh_notify_remindLabel { opacity: 0.9; }
+.dsh_notify_remindControl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.dsh_notify_remindHint { font-size: 12.5px; opacity: 0.82; line-height: 1.5; }
+.dsh_notify_remindDesc {
+  font-size: 12px;
+  opacity: 0.74;
+  line-height: 1.55;
+  padding-left: 74px;
+}
+/* One box style for every numeric field and the style selector. */
+.dsh_notify_number,
+.dsh_notify_select {
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
+  border-radius: 8px;
+  padding: 4px 8px;
+  height: 30px;
+  box-sizing: border-box;
+}
+.dsh_notify_number { width: 72px; font-variant-numeric: tabular-nums; }
+.dsh_notify_select {
+  min-width: 128px;
+  padding-right: 26px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238f8f8f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+.dsh_notify_number:focus,
+.dsh_notify_select:focus {
+  outline: none;
+  border-color: var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.55));
+}
+.dsh_notify_number:disabled,
+.dsh_notify_select:disabled { opacity: 0.5; cursor: default; }
+.dsh_notify_select option { color: initial; }
 /* Inline rename field: sits where the row's name sits, so the list does not jump. */
 .dsh_notify_renameInput {
   flex: 1 1 auto;
   min-width: 0;
   font: inherit;
-  font-size: 12px;
+  font-size: 12.5px;
   color: inherit;
-  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.08));
+  background: transparent;
   border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
-  border-radius: 6px;
-  padding: 3px 8px;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+.dsh_notify_renameInput:focus {
+  outline: none;
+  border-color: var(--dsw-alias-border-l1, rgba(127, 127, 127, 0.55));
+  background: var(--dsw-alias-bg-layer-1, rgba(127, 127, 127, 0.06));
 }
 .dsh_notify_cacheText { flex: 1 1 auto; font-size: 12px; opacity: 0.8; font-variant-numeric: tabular-nums; }
 .dsh_notify_rowDesc { font-size: 12px; opacity: 0.74; line-height: 1.55; }
@@ -124,16 +189,7 @@ export const cssText = `
 .dsh_notify_modeRow { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; }
 .dsh_notify_modeRow input[type='radio'] { margin-top: 3px; }
 .dsh_notify_modeText { display: flex; flex-direction: column; gap: 2px; }
-.dsh_notify_minutes { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-.dsh_notify_minutes input {
-  width: 72px;
-  padding: 4px 8px;
-  border-radius: 8px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.3));
-  background: transparent;
-  color: inherit;
-  font-variant-numeric: tabular-nums;
-}
+
 
 /*
  * Card 2: one row per situation — name, sound picker, text picker, preview.
@@ -167,15 +223,6 @@ export const cssText = `
   text-align: center;
   align-self: center;
 }
-.dsh_notify_remindLine {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0 2px;
-  font-size: 12px;
-  opacity: 0.85;
-}
-.dsh_notify_remindLine .dsh_notify_minutes input { width: 64px; }
 
 /* The two collapsible libraries. */
 .dsh_notify_card .dsh_notify_collapse {
@@ -224,16 +271,20 @@ export const cssText = `
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  max-height: 168px;
+  gap: 4px;
+  max-height: 210px;
   overflow-y: auto;
 }
+/*
+ * One imported sound: the name and the size on the first line, its two actions
+ * on a second line. A single line cannot hold a long file name next to both
+ * buttons without the buttons collapsing into a full-width block.
+ */
 .dsh_notify_card .dsh_notify_soundItem {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
   border-radius: 7px;
   font-size: 12px;
   border: 1px solid transparent;
@@ -242,8 +293,33 @@ export const cssText = `
   background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.1));
   border-color: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.2));
 }
-.dsh_notify_soundItemName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dsh_notify_soundItemSize { opacity: 0.6; font-variant-numeric: tabular-nums; }
+.dsh_notify_soundItemMain {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.dsh_notify_soundItemName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.dsh_notify_soundItemSize {
+  flex: 0 0 auto;
+  font-size: 11px;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+.dsh_notify_soundItemActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dsh_notify_soundItemActions .dsh_notify_iconButton { flex: 0 0 auto; }
 .dsh_notify_card .dsh_notify_iconButton {
   height: 24px;
   padding: 0 8px;
@@ -558,10 +634,6 @@ export const cssText = `
 .dsh_notify_modeRowDisabled .dsh_notify_rowLabel,
 .dsh_notify_modeRowDisabled .dsh_notify_rowDesc {
   opacity: 0.5;
-}
-.dsh_notify_minutes input:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 `
 

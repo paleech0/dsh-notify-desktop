@@ -15,7 +15,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { DEFAULT_SETTINGS, type NotifyMode, type NotifySettings, type PluginLanguage, type SoundId, type SoundLibrary } from '../types.ts'
+import { DEFAULT_SETTINGS, REMINDER_MODES, type NotifyMode, type NotifySettings, type PluginLanguage, type ReminderMode, type SoundId, type SoundLibrary } from '../types.ts'
 import {
   SCENARIO_IDS,
   type NotifyScenario,
@@ -228,6 +228,20 @@ const SCENARIO_EXAMPLE_KEYS: Readonly<Record<NotifyScenario, NotifyKey>> = {
 function needsFfmpeg(id: SoundId): boolean {
   if (!id.startsWith('custom:') && !id.startsWith('author:')) return false
   return !id.toLowerCase().endsWith('.wav')
+}
+
+/** Display label of each reminder style. */
+const REMIND_MODE_KEYS: Record<ReminderMode, NotifyKey> = {
+  once: 'settings.remind.mode.once',
+  repeat: 'settings.remind.mode.repeat',
+  sticky: 'settings.remind.mode.sticky',
+}
+
+/** One-line explanation of each reminder style. */
+const REMIND_MODE_DESC: Record<ReminderMode, NotifyKey> = {
+  once: 'settings.remind.mode.onceDesc',
+  repeat: 'settings.remind.mode.repeatDesc',
+  sticky: 'settings.remind.mode.stickyDesc',
 }
 
 /** The three language choices, in display order. */
@@ -576,22 +590,61 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
           ))}
         </div>
         {visibleScenarios.includes('reminder') ? (
-          <div className="dsh_notify_remindLine">
-            <span>{t('settings.remind.prefix')}</span>
-            <label className="dsh_notify_minutes">
-              <input
-                type="number"
-                min={1}
-                max={240}
-                disabled={!formEnabled}
-                value={settings.remindAfterMinutes}
-                onChange={event => {
-                  const next = Number(event.target.value)
-                  if (Number.isFinite(next)) props.set({ remindAfterMinutes: next })
-                }}
-              />
-            </label>
-            <span>{t('settings.remind.suffix')}</span>
+          <div className="dsh_notify_remindBlock">
+            <div className="dsh_notify_remindRow">
+              <span className="dsh_notify_remindLabel">{t('settings.remind.prefix')}</span>
+              <div className="dsh_notify_remindControl">
+                <input
+                  className="dsh_notify_number"
+                  type="number"
+                  min={1}
+                  max={240}
+                  disabled={!formEnabled}
+                  value={settings.remindAfterMinutes}
+                  onChange={event => {
+                    const next = Number(event.target.value)
+                    if (Number.isFinite(next)) props.set({ remindAfterMinutes: next })
+                  }}
+                />
+                <span className="dsh_notify_remindHint">{t('settings.remind.suffix')}</span>
+              </div>
+            </div>
+            <div className="dsh_notify_remindRow">
+              <span className="dsh_notify_remindLabel">{t('settings.remind.modeLabel')}</span>
+              <div className="dsh_notify_remindControl">
+                <select
+                  className="dsh_notify_select"
+                  disabled={!formEnabled}
+                  value={settings.reminderMode}
+                  onChange={event => {
+                    props.set({ reminderMode: event.target.value as ReminderMode })
+                  }}
+                >
+                  {REMINDER_MODES.map(mode => (
+                    <option key={mode} value={mode}>{t(REMIND_MODE_KEYS[mode])}</option>
+                  ))}
+                </select>
+                {settings.reminderMode === 'repeat' ? (
+                  <>
+                    <span className="dsh_notify_remindHint">{t('settings.remind.every')}</span>
+                    <input
+                      className="dsh_notify_number"
+                      type="number"
+                      min={1}
+                      max={240}
+                      disabled={!formEnabled}
+                      value={settings.remindEveryMinutes}
+                      onChange={event => {
+                        const next = Number(event.target.value)
+                        if (Number.isFinite(next)) props.set({ remindEveryMinutes: next })
+                      }}
+                    />
+                    <span className="dsh_notify_remindHint">{t('settings.remind.everySuffix')}</span>
+                  </>
+                ) : null}
+              </div>
+            </div>
+            <div className="dsh_notify_remindDesc">{t(REMIND_MODE_DESC[settings.reminderMode])}</div>
           </div>
         ) : null}
 
@@ -624,12 +677,13 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
             <ul className="dsh_notify_soundList">
               {library.custom.map(item => (
                 <li key={item.id} className="dsh_notify_soundItem">
-                  {renaming === item.id ? (
-                    <>
+                  <div className="dsh_notify_soundItemMain">
+                    {renaming === item.id ? (
                       <input
                         className="dsh_notify_renameInput"
                         value={renameDraft}
                         maxLength={60}
+                        autoFocus
                         aria-label={t('settings.soundLibrary.rename')}
                         onChange={event => {
                           setRenameDraft(event.target.value)
@@ -639,52 +693,61 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
                           if (event.key === 'Escape') setRenaming(null)
                         }}
                       />
-                      <button
-                        type="button"
-                        className="dsh_notify_button"
-                        onClick={() => {
-                          void commitRename(item.id)
-                        }}
-                      >
-                        {t('settings.soundLibrary.renameSave')}
-                      </button>
-                      <button
-                        type="button"
-                        className="dsh_notify_button"
-                        onClick={() => {
-                          setRenaming(null)
-                        }}
-                      >
-                        {t('settings.textEditor.cancel')}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <span className="dsh_notify_soundItemName">{item.name}</span>
-                      <span className="dsh_notify_soundItemSize">{formatBytes(item.bytes)}</span>
-                      <button
-                        type="button"
-                        className="dsh_notify_iconButton"
-                        onClick={() => {
-                          setLibraryNote(null)
-                          setRenaming(item.id)
-                          setRenameDraft(item.name)
-                        }}
-                      >
-                        {t('settings.soundLibrary.rename')}
-                      </button>
-                      <button
-                        type="button"
-                        className="dsh_notify_iconButton dsh_notify_danger"
-                        onClick={() => {
-                          setLibraryNote(null)
-                          setSoundConfirm(item.id)
-                        }}
-                      >
-                        {t('settings.soundLibrary.remove')}
-                      </button>
-                    </>
-                  )}
+                    ) : (
+                      <>
+                        <span className="dsh_notify_soundItemName" title={item.name}>{item.name}</span>
+                        <span className="dsh_notify_soundItemSize">{formatBytes(item.bytes)}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="dsh_notify_soundItemActions">
+                    {renaming === item.id ? (
+                      <>
+                        <button
+                          type="button"
+                          className="dsh_notify_iconButton"
+                          onClick={() => {
+                            void commitRename(item.id)
+                          }}
+                        >
+                          {t('settings.soundLibrary.renameSave')}
+                        </button>
+                        <button
+                          type="button"
+                          className="dsh_notify_iconButton"
+                          onClick={() => {
+                            setRenaming(null)
+                          }}
+                        >
+                          {t('settings.textEditor.cancel')}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className="dsh_notify_iconButton"
+                          onClick={() => {
+                            setLibraryNote(null)
+                            setRenaming(item.id)
+                            setRenameDraft(item.name)
+                          }}
+                        >
+                          {t('settings.soundLibrary.rename')}
+                        </button>
+                        <button
+                          type="button"
+                          className="dsh_notify_iconButton dsh_notify_danger"
+                          onClick={() => {
+                            setLibraryNote(null)
+                            setSoundConfirm(item.id)
+                          }}
+                        >
+                          {t('settings.soundLibrary.remove')}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

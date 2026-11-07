@@ -150,6 +150,17 @@ export interface ToastRequest {
   /** Which sound to play; 'silent' mutes this toast. */
   readonly sound: SoundId
   readonly onClick: () => void
+  /**
+   * Keep the toast on screen until the user dismisses it.
+   *
+   * Windows only honours this for the `reminder` scenario, and only when the
+   * toast carries a background/system action button — measured: the same XML
+   * without a button behaves like a normal five-second toast. The host builds
+   * that button; the renderer path cannot express it at all.
+   */
+  readonly sticky?: boolean
+  /** The dismiss button's label when {@link sticky} is set. */
+  readonly dismissLabel?: string
 }
 
 /**
@@ -169,7 +180,13 @@ export function requestHostToast(request: ToastRequest): boolean {
     void fetchImpl(HOST_TOAST_ROUTE, {
       method: 'POST',
       headers: { [FOCUS_HEADER]: '1', 'content-type': 'application/json' },
-      body: JSON.stringify({ title: request.title, body: request.body, sound: request.sound }),
+      body: JSON.stringify({
+        title: request.title,
+        body: request.body,
+        sound: request.sound,
+        sticky: request.sticky === true,
+        dismissLabel: request.dismissLabel ?? '',
+      }),
     }).catch(() => undefined)
     return true
   } catch {

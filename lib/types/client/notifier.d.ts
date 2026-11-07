@@ -60,6 +60,17 @@ export interface ToastRequest {
     /** Which sound to play; 'silent' mutes this toast. */
     readonly sound: SoundId;
     readonly onClick: () => void;
+    /**
+     * Keep the toast on screen until the user dismisses it.
+     *
+     * Windows only honours this for the `reminder` scenario, and only when the
+     * toast carries a background/system action button — measured: the same XML
+     * without a button behaves like a normal five-second toast. The host builds
+     * that button; the renderer path cannot express it at all.
+     */
+    readonly sticky?: boolean;
+    /** The dismiss button's label when {@link sticky} is set. */
+    readonly dismissLabel?: string;
 }
 /**
  * Show one toast when the platform allows it.

@@ -130,6 +130,17 @@ export type NotifyMode = (typeof NOTIFY_MODES)[number];
 export declare const PLUGIN_LANGUAGES: readonly ["auto", "zh", "en"];
 /** One plugin language choice. */
 export type PluginLanguage = (typeof PLUGIN_LANGUAGES)[number];
+/**
+ * How the reminder for a long-unanswered wait behaves.
+ *
+ * `once` sends a single extra toast (the original behaviour), `repeat` keeps
+ * nudging every `remindEveryMinutes` until the wait is answered, and `sticky`
+ * raises one reminder that stays on screen until the user dismisses it (Windows
+ * reminder-scenario toasts) with the sound played once.
+ */
+export declare const REMINDER_MODES: readonly ["once", "repeat", "sticky"];
+/** One reminder behaviour. */
+export type ReminderMode = (typeof REMINDER_MODES)[number];
 /** The built-in title: what the composed title was before templates existed. */
 export declare const DEFAULT_TITLE_TEMPLATE = "{\u5DE5\u4F5C\u533A} \u00B7 {\u72B6\u6001}";
 /** The built-in body: just the summary. */
@@ -173,6 +184,10 @@ export interface NotifySettings {
     readonly notifyPlanReview: boolean;
     /** Minutes an unanswered blocking interaction may wait before one reminder. */
     readonly remindAfterMinutes: number;
+    /** What that reminder does: once, repeating, or a toast that stays until dismissed. */
+    readonly reminderMode: ReminderMode;
+    /** Minutes between reminders while `reminderMode` is `repeat`. */
+    readonly remindEveryMinutes: number;
     /** The language of this plugin's own interface and popup text. */
     readonly language: PluginLanguage;
 }

@@ -316,6 +316,7 @@ export function apply(ctx: ClientContext): void {
       summary: ask.summary,
       firstSeenAt: ask.firstSeenAt,
       reminded: false,
+      lastRemindedAt: 0,
     })
     const delivery = decision === null ? 'suppressed' : isSoundOnly(settings) ? 'sound-only' : 'toast'
     report('pending ' + where + ' focused=' + String(focused) + ' -> ' + delivery)
@@ -501,6 +502,7 @@ export function apply(ctx: ClientContext): void {
             summary: entry.summary,
             firstSeenAt: now,
             reminded: false,
+            lastRemindedAt: 0,
           })
         }
         knownPending.set(id, seeded)
@@ -616,8 +618,9 @@ export function apply(ctx: ClientContext): void {
     const minutes = String(settings.remindAfterMinutes)
     for (const due of dueReminders([...waits.values()], settings, now)) {
       const wait = waits.get(due.key)
-      if (wait === undefined || wait.reminded) continue
-      waits.set(due.key, { ...wait, reminded: true })
+      if (wait === undefined) continue
+      if (wait.reminded && settings.reminderMode !== 'repeat') continue
+      waits.set(due.key, { ...wait, reminded: true, lastRemindedAt: now })
       if (focused) continue
       const parts = {
         workspace: sessionLabel(due.sessionId),
@@ -631,11 +634,16 @@ export function apply(ctx: ClientContext): void {
         continue
       }
       const text = textFor('reminder', parts, fallbackBodyOf('reminder'))
+      // The sticky mode is only worth its extra plumbing on the first reminder:
+      // a toast that never leaves the screen must not be raised twice.
+      const sticky = settings.reminderMode === 'sticky' && !wait.reminded
       showToast({
         title: text.title,
         body: text.body,
-        tag: reminderTag(due.sessionId, due.requestId),
+        tag: reminderTag(due.sessionId, due.requestId) + (sticky ? '-s' : ''),
         sound,
+        sticky,
+        ...(sticky ? { dismissLabel: t('notify.dismiss') } : {}),
         onClick: () => {
           activate(due.sessionId)
         },

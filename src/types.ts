@@ -194,6 +194,19 @@ export const PLUGIN_LANGUAGES = Object.freeze(['auto', 'zh', 'en'] as const)
 /** One plugin language choice. */
 export type PluginLanguage = (typeof PLUGIN_LANGUAGES)[number]
 
+/**
+ * How the reminder for a long-unanswered wait behaves.
+ *
+ * `once` sends a single extra toast (the original behaviour), `repeat` keeps
+ * nudging every `remindEveryMinutes` until the wait is answered, and `sticky`
+ * raises one reminder that stays on screen until the user dismisses it (Windows
+ * reminder-scenario toasts) with the sound played once.
+ */
+export const REMINDER_MODES = Object.freeze(['once', 'repeat', 'sticky'] as const)
+
+/** One reminder behaviour. */
+export type ReminderMode = (typeof REMINDER_MODES)[number]
+
 /** The built-in title: what the composed title was before templates existed. */
 export const DEFAULT_TITLE_TEMPLATE = '{工作区} · {状态}'
 
@@ -240,6 +253,10 @@ export interface NotifySettings {
   readonly notifyPlanReview: boolean
   /** Minutes an unanswered blocking interaction may wait before one reminder. */
   readonly remindAfterMinutes: number
+  /** What that reminder does: once, repeating, or a toast that stays until dismissed. */
+  readonly reminderMode: ReminderMode
+  /** Minutes between reminders while `reminderMode` is `repeat`. */
+  readonly remindEveryMinutes: number
   /** The language of this plugin's own interface and popup text. */
   readonly language: PluginLanguage
 }
@@ -290,6 +307,8 @@ export const DEFAULT_SETTINGS: NotifySettings = Object.freeze({
   notifyQuestion: true,
   notifyPlanReview: true,
   remindAfterMinutes: 10,
+  reminderMode: 'once',
+  remindEveryMinutes: 5,
   language: 'auto',
 })
 
