@@ -27,8 +27,13 @@ clicking it brings the DSH window back to the front.
   (`GET /dsh-notify/debug`) instead of failing silently.
 - **Custom sounds can be renamed** from the "Custom sounds" card, Chinese names included; every situation using the
   file follows the new name.
-- **Compatibility.** Verified on DSH desktop **0.2.2-rc.1** (plugin loading, projection delivery, host
-  toast, diagnostics and text-template routes). The declared range is unchanged (`>=0.2.0-rc.2 <0.3.0-0`).
+- **Compatibility.** Re-verified on DSH desktop **0.2.2-rc.3** with plugin 0.2.5 on 2026-11-14: the host and
+  client halves load, the `notify` projection is delivered, every host route answers, the settings page renders,
+  and a real unfocused turn end raises the host toast with its sound
+  ([evidence](docs/acceptance/2026-11-14-dsh-0.2.2-rc.3-compat.md)). The per-situation sound/text picks, the
+  reminder styles, custom-sound import and the language switch were last exercised on 0.2.2-rc.1
+  ([evidence](docs/acceptance/2026-11-06-bilingual-ui.md)) and were not re-clicked on rc.3. The declared range is
+  unchanged (`>=0.2.0-rc.2 <0.3.0-0`).
 
 ## What you get
 
@@ -189,7 +194,7 @@ this file by hand** — the client loads it once at start-up.
 
 | | |
 |---|---|
-| Verified on | DSH desktop **0.2.2-rc.1**: plugin loading, projection delivery, host toast, diagnostics and text-template routes, plus the settings page's Chinese/English switch ([evidence](docs/acceptance/2026-11-06-bilingual-ui.md)); earlier runs — 0.2.1-rc.5 (toast identity) and rc.3 / rc.2 / 0.2.0-rc.2 — are kept in `docs/acceptance/` |
+| Verified on | DSH desktop **0.2.2-rc.3** (plugin 0.2.5, 2026-11-14): host and client loading, projection delivery, every host route, the settings page rendering, and a real unfocused turn-end notification with its sound ([evidence](docs/acceptance/2026-11-14-dsh-0.2.2-rc.3-compat.md)). The per-situation sound/text picks, the reminder styles, custom-sound import and the language switch were last exercised on 0.2.2-rc.1 ([evidence](docs/acceptance/2026-11-06-bilingual-ui.md)); earlier runs — 0.2.1-rc.5 (toast identity) and rc.3 / rc.2 / 0.2.0-rc.2 — are kept in `docs/acceptance/` |
 | Declared range | `>=0.2.0-rc.2 <0.3.0-0` (the loader's semver gate) — this lets the loader **accept** the whole 0.2 line from 0.2.0-rc.2 on, prereleases included; **only the versions verified above are tested — anything else inside the range is allowed but not guaranteed**. 0.2.0-rc.1 and older, and 0.3.x, are outside it |
 | Platform | Windows desktop profile only; the web profile has no toast channel and is untested |
 | Seam check | The 0.2.2 runtime image ships no `.d.ts`; every seam used here was checked against its compiled JS and still matches |
