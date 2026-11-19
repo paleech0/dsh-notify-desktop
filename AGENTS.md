@@ -6,7 +6,7 @@
 
 1. **不改 harness**。本插件只用公开 seam：session projection、session list、settings slot、locale、webServer route。
    不修改 `<DSH desktop install>` 下任何文件，不往官方转发事件表里加事件，不给外壳 `process.send` 发自定义 type（白名单外 = 外壳 SIGTERM 打死宿主）。
-2. **peer 依赖精确对齐运行时**。运行时 = `<DSH desktop install>`（**0.2.2-rc.3**；2026-11-14 复核通过：加载 / 投影 / 宿主全部路由 / 设置页渲染 / 无焦点真实通知与音效；逐项 UI 交互沿用 0.2.2-rc.1 验收。devDependencies 仍锁 0.2.0-rc.2 仅供构建/类型检查，且 0.2.2 运行时镜像不带 `.d.ts`）。装/升任何 `@deepseek-ai/*` 前
+2. **peer 依赖精确对齐运行时**。运行时 = `<DSH desktop install>`（**0.2.2-rc.5**；2026-11-19 冒烟复核通过：闸门全绿 / 加载 / 投影 / 宿主全部路由 / 宿主 Toast；真实无焦点通知上次在 0.2.2-rc.3 验证，逐项 UI 沿用 0.2.2-rc.1 验收。devDependencies 仍锁 0.2.0-rc.2 仅供构建/类型检查，且 0.2.2 运行时镜像不带 `.d.ts`）。装/升任何 `@deepseek-ai/*` 前
    用 `"<DSH desktop install>\resources\runtime\cli\bin\dsh.cmd" --version` 核对；对不上就停手问人。
 3. **`lib/` 必须随源码提交**（profile 以链接方式装配，不发 npm 包）。
 4. **`pnpm run check` 必须全绿**（typecheck + vitest + build + smoke）才能提交。
