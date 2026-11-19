@@ -24,19 +24,26 @@ export const MAX_BODY_CHARS = 400
 /** The projection key this plugin owns. */
 export const NOTIFY_KEY = 'notify'
 
+// Mnemon reserves this session ID for automatic spawn reviews and marks its
+// starting prompt on both standalone Hosts and activation-owned Hosts.
+const MNEMON_IDLE_REVIEW_SESSION = /^mnemon-review-v1-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u
+const MNEMON_IDLE_REVIEW_PROMPT = '[dsh-mnemon:delegated review]\n'
+
 /** One finished turn, as far as notifications are concerned. */
 interface FinishedTurn {
   readonly turn: number
   readonly reason: string
   readonly body: string
+  readonly mnemonIdleReview?: boolean | undefined
 }
 
 /** Fold state plus its cached wire view (the view must be reference-stable). */
 export interface NotifyState {
   /** Events at or below this seq are fork-inherited and skipped. */
   readonly inheritedEventCount: number
+  readonly mnemonReviewSession?: boolean | undefined
   /** The open turn's accumulated reply text; null outside a turn. */
-  readonly open: { readonly turn: number; readonly text: string } | null
+  readonly open: { readonly turn: number; readonly text: string; readonly reviewInput?: 'automatic' | 'other' | undefined } | null
   /** The last finished turn; null before the first one. */
   readonly last: FinishedTurn | null
   /** Blocking interactions, in first-seen order. */
@@ -77,6 +84,7 @@ function withView(
       turn: base.last?.turn ?? 0,
       reason: base.last?.reason ?? '',
       body: base.last?.body ?? '',
+      ...(base.last?.mnemonIdleReview === true ? { mnemonIdleReview: true } : {}),
       pending: base.pending,
       updatedAt: base.updatedAt,
     },
@@ -84,8 +92,12 @@ function withView(
 }
 
 /** The initial fold; `inheritedEventCount` comes from the session's fork cut. */
-export function initialState(inheritedEventCount: number): NotifyState {
-  return withView({ inheritedEventCount, open: null, last: null, pending: [], updatedAt: 0 })
+export function initialState(inheritedEventCount: number, sessionId?: string): NotifyState {
+  const mnemonReviewSession = inheritedEventCount === 0 && sessionId !== undefined && MNEMON_IDLE_REVIEW_SESSION.test(sessionId)
+  return withView({
+    inheritedEventCount, open: null, last: null, pending: [], updatedAt: 0,
+    ...(mnemonReviewSession ? { mnemonReviewSession: true } : {}),
+  })
 }
 
 /** Remove one pending interaction by id; returns the same array when absent. */
@@ -249,7 +261,12 @@ export function applyNotifyEvent(
       return withView({
         ...state,
         open: null,
-        last: { turn: open.turn, reason, body: open.text.trim() },
+        last: {
+          turn: open.turn,
+          reason,
+          body: open.text.trim(),
+          ...(reason === 'completed' && open.reviewInput === 'automatic' ? { mnemonIdleReview: true } : {}),
+        },
         updatedAt: event.time ?? state.updatedAt,
       })
     }
@@ -322,7 +339,18 @@ export function applyNotifyEvent(
       return withView({ ...state, pending: next, updatedAt: event.time ?? state.updatedAt })
     }
     case 'user/message': {
-      const source = obj(data, 'source')
+      const message = obj(data, 'message') ?? data
+      const source = obj(message, 'source')
+      const open = state.open
+      if (state.mnemonReviewSession === true && open?.turn === 1 && str(source, 'kind') === 'user') {
+        // A second user prompt in the same turn restores the usual notification.
+        if (open.reviewInput === 'other') return state
+        const content = message['content']
+        const first: unknown = Array.isArray(content) ? content[0] : undefined
+        const automatic = open.reviewInput === undefined && str(first, 'type') === 'text'
+          && str(first, 'text')?.startsWith(MNEMON_IDLE_REVIEW_PROMPT) === true
+        return { ...state, open: { ...open, reviewInput: automatic ? 'automatic' : 'other' } }
+      }
       if (str(source, 'kind') !== 'user-question-reply') return state
       const callId = str(source, 'callId')
       if (callId === undefined) return state
@@ -345,6 +373,7 @@ const viewSchema = z.object({
   turn: z.number().int().nonnegative(),
   reason: z.string(),
   body: z.string(),
+  mnemonIdleReview: z.boolean().optional(),
   pending: z.array(pendingSchema),
   updatedAt: z.number(),
 }).strict()
@@ -352,8 +381,9 @@ const viewSchema = z.object({
 /** The persisted fold state; the registry validates checkpoint rows with it. */
 const stateSchema = z.object({
   inheritedEventCount: z.number().int().nonnegative(),
-  open: z.object({ turn: z.number(), text: z.string() }).strict().nullable(),
-  last: z.object({ turn: z.number(), reason: z.string(), body: z.string() }).strict().nullable(),
+  mnemonReviewSession: z.boolean().optional(),
+  open: z.object({ turn: z.number(), text: z.string(), reviewInput: z.enum(['automatic', 'other']).optional() }).strict().nullable(),
+  last: z.object({ turn: z.number(), reason: z.string(), body: z.string(), mnemonIdleReview: z.boolean().optional() }).strict().nullable(),
   pending: z.array(pendingSchema),
   updatedAt: z.number(),
   view: viewSchema,
@@ -388,7 +418,7 @@ export function notifyProjection(
     key: NOTIFY_KEY,
     stateSchema,
     stateVersion: 1,
-    init: (_header, inheritedEventCount) => initialState(inheritedEventCount),
+    init: (header, inheritedEventCount) => initialState(inheritedEventCount, header.id),
     apply: (state, event) => applyNotifyEvent(state, event, maxChars),
     wire: {
       viewSchema,

@@ -39,6 +39,8 @@ export declare const zh: {
     readonly 'settings.scenario.planReview': "等待计划评审";
     readonly 'settings.scenario.reminder': "超时催办";
     readonly 'settings.scenario.completedExample': "这一轮回复写完了。";
+    readonly 'settings.silenceMnemonIdleReview': "静默 Mnemon 自动空闲审查的完成提醒";
+    readonly 'settings.silenceMnemonIdleReviewDesc': "正常完成后跳过弹窗和提示音。审查照常写回，错误和等待操作继续按通知设置提醒。";
     readonly 'settings.scenario.errorExample': "模型或工具报错，这一轮没跑完。";
     readonly 'settings.scenario.abortedExample': "你点了停止，或这一轮被中断。";
     readonly 'settings.scenario.blockedExample': "这一轮卡住，没能继续。";
@@ -211,6 +213,8 @@ export declare const en: {
     'settings.scenario.planReview': string;
     'settings.scenario.reminder': string;
     'settings.scenario.completedExample': string;
+    'settings.silenceMnemonIdleReview': string;
+    'settings.silenceMnemonIdleReviewDesc': string;
     'settings.scenario.errorExample': string;
     'settings.scenario.abortedExample': string;
     'settings.scenario.blockedExample': string;

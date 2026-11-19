@@ -90,6 +90,7 @@
 | 分组 | 开关 |
 |---|---|
 | 会话结束 | 正常完成 / 出错 / 被中止 / 被阻塞 / 达到 Token 上限（每行附一句例子） |
+| 静默 Mnemon 自动空闲审查的完成提醒 | 默认开启。仅跳过由 Mnemon 创建的自动 `spawn` 审查正常结束时的弹窗和提示音。审查和记忆写回照常运行，错误、等待操作和手动对话仍按各自的通知设置处理。 |
 | 等待你确认 | 等待审批 / 等待回答 / 等待计划评审（每行附一句例子） |
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-situations-zh.png" width="620" alt="卡二「选择接收以下哪种情况的通知」：会话结束与等待你确认两组开关">

@@ -22,15 +22,18 @@ interface FinishedTurn {
     readonly turn: number;
     readonly reason: string;
     readonly body: string;
+    readonly mnemonIdleReview?: boolean | undefined;
 }
 /** Fold state plus its cached wire view (the view must be reference-stable). */
 export interface NotifyState {
     /** Events at or below this seq are fork-inherited and skipped. */
     readonly inheritedEventCount: number;
+    readonly mnemonReviewSession?: boolean | undefined;
     /** The open turn's accumulated reply text; null outside a turn. */
     readonly open: {
         readonly turn: number;
         readonly text: string;
+        readonly reviewInput?: 'automatic' | 'other' | undefined;
     } | null;
     /** The last finished turn; null before the first one. */
     readonly last: FinishedTurn | null;
@@ -51,7 +54,7 @@ export declare const EMPTY_VIEW: NotifyProjectionValue;
  */
 export declare function boundText(text: string, maxChars: number): string;
 /** The initial fold; `inheritedEventCount` comes from the session's fork cut. */
-export declare function initialState(inheritedEventCount: number): NotifyState;
+export declare function initialState(inheritedEventCount: number, sessionId?: string): NotifyState;
 /**
  * The programmatic-tool-calling events, declared here because 0.2.0-rc.2 ships
  * no type entry for them in the published packages (their runtime shape was

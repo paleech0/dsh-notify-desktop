@@ -154,8 +154,9 @@ describe('notification settings section', () => {
       zh['settings.situations.title'],
       zh['settings.customize.title'],
     ])
-    // eight situation switches: five outcomes + three waiting kinds
-    expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(9)
+    // Master, five outcomes, automatic review silence, and three waiting kinds.
+    expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(10)
+    expect(container.querySelector<HTMLInputElement>('#dsh-notify-silence-mnemon-idle-review')?.checked).toBe(true)
     // three delivery radios
     expect(container.querySelectorAll('input[type="radio"]')).toHaveLength(3)
     // the test notification belongs to the first card

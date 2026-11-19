@@ -23,6 +23,8 @@ export interface NotifyProjectionValue {
     readonly reason: string;
     /** The turn's final assistant text, bounded host-side. */
     readonly body: string;
+    /** A successful turn initiated solely by Mnemon's automatic idle review. */
+    readonly mnemonIdleReview?: boolean | undefined;
     /** Every blocking interaction, in first-seen order. */
     readonly pending: readonly PendingInteraction[];
     /** Host clock (ms) of the last event folded into this value. */
@@ -172,6 +174,7 @@ export interface NotifySettings {
     /** Set only while the pre-per-situation template pair still needs moving to disk. */
     readonly legacyText: LegacyTextTemplates | null;
     readonly notifyCompleted: boolean;
+    readonly silenceMnemonIdleReview: boolean;
     readonly notifyError: boolean;
     readonly notifyAborted: boolean;
     readonly notifyBlocked: boolean;

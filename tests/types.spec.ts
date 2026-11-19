@@ -31,6 +31,7 @@ describe('notification contract', () => {
       },
       legacyText: null,
       notifyCompleted: true,
+      silenceMnemonIdleReview: true,
       notifyError: true,
       notifyAborted: false,
       notifyBlocked: true,

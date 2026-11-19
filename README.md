@@ -103,6 +103,7 @@ What "Send a test notification" raises:
 | Group | Switches |
 |---|---|
 | A session ends | Completed / Error / Aborted / Blocked / Token limit reached (each row carries an example) |
+| Silence completed Mnemon idle reviews | On by default. Skips the popup and sound when an automatic Mnemon `spawn` review succeeds. The review and writeback still run, and your existing settings apply to failures, requests for input, and conversations you run yourself. |
 | Waiting on you | Waiting for approval / an answer / a plan review (each row carries an example) |
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-situations-en.png" width="620" alt="Card 2, Notify me in which of these situations: the session-ends group and the waiting-on-you group">
