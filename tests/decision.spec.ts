@@ -35,6 +35,14 @@ describe('notification decision', () => {
     expect(decideNotification(input())).not.toBeNull()
   })
 
+  it('silences successful automatic Mnemon review by default and honours opt-out', () => {
+    const trigger = { kind: 'turn', reason: 'completed', mnemonIdleReview: true } as const
+    expect(decideNotification(input({ trigger }))).toBeNull()
+    expect(decideNotification(input({ trigger, settings: settings({ silenceMnemonIdleReview: false }) }))).not.toBeNull()
+    expect(decideNotification(input({ trigger: { ...trigger, reason: 'error' } }))).not.toBeNull()
+    expect(decideNotification(input({ trigger: { kind: 'pending', pending: 'approval' } }))).not.toBeNull()
+  })
+
   it('stays silent when the master switch is off', () => {
     expect(decideNotification(input({ settings: settings({ enabled: false }) }))).toBeNull()
   })

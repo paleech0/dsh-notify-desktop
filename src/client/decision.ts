@@ -52,7 +52,7 @@ export function pendingEnabled(settings: NotifySettings, kind: PendingKind): boo
 
 /** What triggered this decision. */
 export type NotifyTrigger =
-  | { readonly kind: 'turn'; readonly reason: NotifyReason }
+  | { readonly kind: 'turn'; readonly reason: NotifyReason; readonly mnemonIdleReview?: boolean }
   | { readonly kind: 'pending'; readonly pending: PendingKind }
 
 /** The situation one turn-end reason belongs to. */
@@ -167,6 +167,8 @@ export interface DecisionInput {
 export function decideNotification(input: DecisionInput): NotifyDecision | null {
   const { settings, trigger } = input
   if (!settings.enabled) return null
+  if (trigger.kind === 'turn' && trigger.reason === 'completed'
+    && trigger.mnemonIdleReview === true && settings.silenceMnemonIdleReview) return null
   const scenario = scenarioOfTrigger(trigger)
   if (!scenarioEnabled(settings, scenario)) return null
   // ZCode's window suppression: while the harness window is focused the user is

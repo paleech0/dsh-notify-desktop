@@ -24,6 +24,33 @@ describe('projection fold', () => {
     expect(applyNotifyEvent(state, ev('session/title', { title: 'x' }, 2))).toBe(state)
   })
 
+  it('marks only the successful first turn of a reserved Mnemon review session', () => {
+    const unit = notifyProjection()
+    const id = 'mnemon-review-v1-2ebf85ae-0ac8-4d26-91eb-b5ea918b4b60'
+    const prompt = ev('user/message', { source: { kind: 'user' }, content: [
+      { type: 'text', text: '[dsh-mnemon:delegated review]\nReview this checkpoint.' },
+    ] }, 7)
+    const start = ev('turn/start', { turn: 1 }, 6)
+    const end = ev('turn/end', { turn: 1, reason: { kind: 'completed' } }, 9)
+    const followup = ev('user/message', { source: { kind: 'user' }, content: [
+      { type: 'text', text: 'Can I see the result?' },
+    ] }, 8)
+    const run = (sessionId: string, inheritedEventCount: number, events: SessionEvent[]) => events.reduce(
+      (state, event) => applyNotifyEvent(state, event), unit.init({ id: sessionId } as never, inheritedEventCount as never),
+    )
+    const completed = run(id, 0, [start, prompt, end])
+    expect(completed.view).toMatchObject({ turn: 1, reason: 'completed', mnemonIdleReview: true })
+    expect(unit.wire.viewSchema.parse(completed.view)).toEqual(completed.view)
+    expect(run(id, 0, [start, prompt, followup, end]).view.mnemonIdleReview).toBeUndefined()
+    expect(run(id, 0, [start, followup, end]).view.mnemonIdleReview).toBeUndefined()
+    expect(run(id, 0, [start, prompt, ev('turn/end', { turn: 1, reason: { kind: 'error' } }, 9)]).view.mnemonIdleReview).toBeUndefined()
+    expect(run(id, 4, [start, prompt, end]).view.mnemonIdleReview).toBeUndefined()
+    const title = ev('session/title', { title: 'Mnemon · Idle review' })
+    expect(run('ordinary-session', 0, [title, start, prompt, end]).view.mnemonIdleReview).toBeUndefined()
+    const nextTurn = [ev('turn/start', { turn: 2 }, 10), prompt, ev('turn/end', { turn: 2, reason: { kind: 'completed' } }, 12)]
+    expect(nextTurn.reduce((state, event) => applyNotifyEvent(state, event), completed).view.mnemonIdleReview).toBeUndefined()
+  })
+
   it('bounds the reply body to the budget', () => {
     let state = initialState(0)
     state = applyNotifyEvent(state, ev('turn/start', { turn: 1 }, 1), 10)

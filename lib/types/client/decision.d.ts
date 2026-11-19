@@ -24,6 +24,7 @@ export declare function pendingEnabled(settings: NotifySettings, kind: PendingKi
 export type NotifyTrigger = {
     readonly kind: 'turn';
     readonly reason: NotifyReason;
+    readonly mnemonIdleReview?: boolean;
 } | {
     readonly kind: 'pending';
     readonly pending: PendingKind;

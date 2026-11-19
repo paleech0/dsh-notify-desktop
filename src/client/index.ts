@@ -448,7 +448,7 @@ export function apply(ctx: ClientContext): void {
           ? null
           : decideNotification({
             settings,
-            trigger: { kind: 'turn', reason },
+            trigger: { kind: 'turn', reason, mnemonIdleReview: projection.mnemonIdleReview === true },
             sessionId: id,
             focused,
             dedupeKey,

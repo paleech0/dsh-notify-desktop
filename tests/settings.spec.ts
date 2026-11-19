@@ -28,6 +28,14 @@ describe('notification settings store', () => {
     expect(readSettings(storage)).toEqual(DEFAULT_SETTINGS)
   })
 
+  it('silences automatic Mnemon reviews for existing settings and preserves opt-out', () => {
+    const storage = memory({ [PERSIST_KEY]: JSON.stringify({ notifyError: false }) })
+    const store = createSettingsStore(storage)
+    expect(store.getSnapshot()).toMatchObject({ silenceMnemonIdleReview: true, notifyError: false })
+    store.update({ silenceMnemonIdleReview: false })
+    expect(readSettings(storage)).toMatchObject({ silenceMnemonIdleReview: false, notifyError: false })
+  })
+
   it('migrates the pre-mode soundEnabled flag and layers a partial payload over the defaults', () => {
     // Old shape: sounds switched off meant "no sound at all" — today's notify-only.
     const soundsOff = memory({ [PERSIST_KEY]: JSON.stringify({ soundEnabled: false }) })

@@ -200,6 +200,7 @@ export function readSettings(storage: SettingsStorage | undefined = ambientStora
       texts: clampTexts(saved['texts']),
       legacyText,
       notifyCompleted: clampBoolean(saved['notifyCompleted'], DEFAULT_SETTINGS.notifyCompleted),
+      silenceMnemonIdleReview: clampBoolean(saved['silenceMnemonIdleReview'], DEFAULT_SETTINGS.silenceMnemonIdleReview),
       notifyError: clampBoolean(saved['notifyError'], DEFAULT_SETTINGS.notifyError),
       notifyAborted: clampBoolean(saved['notifyAborted'], DEFAULT_SETTINGS.notifyAborted),
       notifyBlocked: clampBoolean(saved['notifyBlocked'], DEFAULT_SETTINGS.notifyBlocked),

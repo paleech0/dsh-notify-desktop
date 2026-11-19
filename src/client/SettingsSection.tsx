@@ -540,6 +540,14 @@ export function NotifySettingsSection(props: NotifySectionProps): JSX.Element {
               }}
             />
           ))}
+          <Toggle
+            id="dsh-notify-silence-mnemon-idle-review"
+            checked={settings.silenceMnemonIdleReview}
+            disabled={!formEnabled || !settings.notifyCompleted}
+            label={t('settings.silenceMnemonIdleReview')}
+            desc={t('settings.silenceMnemonIdleReviewDesc')}
+            onChange={silenceMnemonIdleReview => { props.set({ silenceMnemonIdleReview }) }}
+          />
         </div>
         <div className="dsh_notify_subcard">
           <div className="dsh_notify_subcardTitle">{t('settings.situations.pendingTitle')}</div>
