@@ -32,6 +32,9 @@ import {
   REPORT_ROUTE,
   SILENCE_ROUTE,
   TEXT_TEMPLATES_ROUTE,
+  CHANNELS_ROUTE,
+  PUSH_ROUTE,
+  TEST_PUSH_ROUTE,
 } from './protocol.ts'
 import { questionRecordOf, trimQuestions, type QuestionRecord } from './questions.ts'
 import { parseEventWavs } from './event-wav.ts'
@@ -40,6 +43,9 @@ import { deleteTextTemplate, readTextLibrary, saveTextTemplate } from './text-st
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import { AUMID_OVERRIDE_ENV, aumidCandidates, parseAumidLine } from './aumid.ts'
 import { notifyProjection } from './projection.ts'
+import { deleteChannel, readChannels, saveChannel } from './channels-store.ts'
+import { dispatchChannels, sendToChannel } from './channel-send.ts'
+import type { PushMessage } from './channels.ts'
 
 /** Cordis plugin name (the Loader entry and the client bundle id). */
 export const name = 'dsh-notify-desktop'
@@ -747,6 +753,154 @@ function appDataRoot(): string {
   return process.env['LOCALAPPDATA'] ?? process.env['TEMP'] ?? '.'
 }
 
+/** The fixed message the "test channel" button pushes. */
+function testPushMessage(): PushMessage {
+  return {
+    title: 'DSH 外部推送测试',
+    body: '看到这条说明这个外部推送渠道配置正常。',
+    level: 'info',
+    scenario: 'test',
+    source: '',
+    timestamp: Date.now(),
+    vars: { '工作区': '示例工作区', '状态': '测试', '内容': '这是一条测试通知', '分钟': '' },
+  }
+}
+
+/** Coerce a posted body into a PushMessage (tolerant defaults). */
+function pushMessageOf(parsed: Record<string, unknown>): PushMessage {
+  const level = parsed['level'] === 'error' ? 'error' : parsed['level'] === 'warning' ? 'warning' : 'info'
+  const rawVars = parsed['vars']
+  const vars: Record<string, string> = {}
+  if (rawVars !== null && typeof rawVars === 'object') {
+    for (const [key, value] of Object.entries(rawVars as Record<string, unknown>)) {
+      if (typeof value === 'string') vars[key] = value
+    }
+  }
+  return {
+    title: typeof parsed['title'] === 'string' ? parsed['title'] : '',
+    body: typeof parsed['body'] === 'string' ? parsed['body'] : '',
+    level,
+    scenario: typeof parsed['scenario'] === 'string' ? parsed['scenario'] : '',
+    source: typeof parsed['source'] === 'string' ? parsed['source'] : '',
+    timestamp: typeof parsed['timestamp'] === 'number' && Number.isFinite(parsed['timestamp']) ? parsed['timestamp'] : Date.now(),
+    vars,
+  }
+}
+
+/**
+ * The external-push channel route: GET lists every channel, POST saves or
+ * deletes one and answers with the whole list. Tokens only ever reach the host.
+ * @param req - the raw request.
+ * @param res - the raw response.
+ */
+function handleChannels(req: IncomingMessage, res: ServerResponse): void {
+  const root = appDataRoot()
+  if (req.method === 'GET') {
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify({ channels: readChannels(root) }))
+    return
+  }
+  if (req.method !== 'POST' || req.headers[FOCUS_HEADER] === undefined) {
+    res.writeHead(405)
+    res.end()
+    return
+  }
+  readBody(req, body => {
+    let parsed: { action?: unknown; channel?: unknown; id?: unknown } = {}
+    try {
+      parsed = JSON.parse(body) as typeof parsed
+    } catch {
+      // A malformed body is answered as a refusal below.
+    }
+    if (parsed.action === 'delete') {
+      const result = deleteChannel(root, parsed.id)
+      note('delete channel: ' + String(parsed.id) + ' -> ' + String(result.ok))
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify(result.ok
+        ? { ok: true, channels: result.channels }
+        : { ok: false, problem: result.problem }))
+      return
+    }
+    const result = saveChannel(root, parsed.channel)
+    note('save channel: ' + (result.ok ? result.channel.id : result.problem))
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify(result.ok
+      ? { ok: true, channels: result.channels, channel: result.channel }
+      : { ok: false, problem: result.problem, ...(result.missing === undefined ? {} : { missing: result.missing }) }))
+  })
+}
+
+/**
+ * The push route: deliver one notification to every enabled channel.
+ * @param req - the raw request (JSON body: { title, body, level, scenario, source, timestamp }).
+ * @param res - the raw response ({ receipts }).
+ */
+function handlePush(req: IncomingMessage, res: ServerResponse): void {
+  if (req.method !== 'POST' || req.headers[FOCUS_HEADER] === undefined) {
+    res.writeHead(405)
+    res.end()
+    return
+  }
+  readBody(req, body => {
+    let parsed: Record<string, unknown> = {}
+    try {
+      parsed = JSON.parse(body) as Record<string, unknown>
+    } catch {
+      // An empty message is still delivered (harmlessly) below.
+    }
+    const message = pushMessageOf(parsed)
+    void dispatchChannels(readChannels(appDataRoot()), message).then(receipts => {
+      note('push: ' + String(receipts.filter(entry => entry.ok).length) + '/' + String(receipts.length) + ' ok')
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ receipts }))
+    }, error => {
+      note('push failed: ' + String(error))
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ receipts: [] }))
+    })
+  })
+}
+
+/**
+ * The test route: deliver a fixed message to one channel (by id) or all enabled.
+ * @param req - the raw request (JSON body: { id? }).
+ * @param res - the raw response ({ receipts }).
+ */
+function handleTestPush(req: IncomingMessage, res: ServerResponse): void {
+  if (req.method !== 'POST' || req.headers[FOCUS_HEADER] === undefined) {
+    res.writeHead(405)
+    res.end()
+    return
+  }
+  readBody(req, body => {
+    let id = ''
+    try {
+      const parsed = JSON.parse(body) as { id?: unknown }
+      if (typeof parsed.id === 'string') id = parsed.id
+    } catch {
+      // Test all enabled channels below.
+    }
+    const message = testPushMessage()
+    const channels = readChannels(appDataRoot())
+    const task = id === ''
+      ? dispatchChannels(channels, message)
+      : (() => {
+        const target = channels.find(channel => channel.id === id)
+        // A single test reaches a disabled channel too, so the user can verify it
+        // before switching it on.
+        return target === undefined ? Promise.resolve([]) : Promise.all([sendToChannel(target, message)])
+      })()
+    void task.then(receipts => {
+      note('test push: ' + String(receipts.filter(entry => entry.ok).length) + '/' + String(receipts.length) + ' ok')
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ receipts }))
+    }, () => {
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ receipts: [] }))
+    })
+  })
+}
+
 /**
  * Answer the text-template route: GET returns every situation's library, POST
  * saves or deletes one entry and answers with the whole library.
@@ -1447,6 +1601,18 @@ export async function apply(ctx: Context): Promise<void> {
     scoped.effect(
       () => scoped.webServer.register({ kind: 'exact', path: TEXT_TEMPLATES_ROUTE, handler: handleTextTemplates }),
       'dsh-notify-desktop: text template route',
+    )
+    scoped.effect(
+      () => scoped.webServer.register({ kind: 'exact', path: CHANNELS_ROUTE, handler: handleChannels }),
+      'dsh-notify-desktop: channels route',
+    )
+    scoped.effect(
+      () => scoped.webServer.register({ kind: 'exact', path: PUSH_ROUTE, handler: handlePush }),
+      'dsh-notify-desktop: push route',
+    )
+    scoped.effect(
+      () => scoped.webServer.register({ kind: 'exact', path: TEST_PUSH_ROUTE, handler: handleTestPush }),
+      'dsh-notify-desktop: test push route',
     )
     scoped.effect(
       () => scoped.webServer.register({

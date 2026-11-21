@@ -34,6 +34,8 @@
 - **该提醒时提醒** —— 回合结束（正常完成 / 出错 / 被中止 / 被阻塞 / Token 上限）、等待审批、等待回答、计划评审，
   以及等待过久时的一条催办。
 - **你在看就不吵** —— DSH 窗口有焦点时一律不弹；同一件事只弹一次（3 秒去重）。
+- **子代理三档** —— 后台子代理（subagent）会话的提醒分三档：**完全不提醒** / **结束时静音、等你时提醒（默认）** /
+  **和主会话一样提醒**。默认那档派活再多也不会连环弹窗，而子代理真停下来等你审批/回答时照常提醒、超时也催办。
 - **每种情况一套音效和文字** —— 九个情况（五个结束原因、三种等待、一个催办）各自挑音效、各自选弹窗文本；
   每个情况可以保存最多 3 套自定义文本，每行都能先点「预览效果」看/听。
 - **中英双语** —— 插件界面和弹窗文本可以单独切到中文或 English，也可以跟随 DSH 的界面语言。
@@ -91,6 +93,7 @@
 | 分组 | 开关 |
 |---|---|
 | 会话结束 | 正常完成 / 出错 / 被中止 / 被阻塞 / 达到 Token 上限（每行附一句例子） |
+| 子代理会话 | 三档单选：完全不提醒 / 结束时静音、等你时提醒（默认）/ 和主会话一样提醒 |
 | 等待你确认 | 等待审批 / 等待回答 / 等待计划评审（每行附一句例子） |
 
 <img src="https://raw.githubusercontent.com/paleech0/dsh-notify-desktop/main/docs/images/settings-situations-zh.png" width="620" alt="卡二「选择接收以下哪种情况的通知」：会话结束与等待你确认两组开关">
@@ -165,6 +168,66 @@ scoop install ffmpeg           # 已装 Scoop
 **存在哪里。** 文本内容保存在 `%LOCALAPPDATA%\dsh-notify\templates\templates.json`（和自定义音效同一个 `dsh-notify` 目录），
 按情况分组、每个情况最多 3 套；写入走临时文件 + rename，损坏时按空库处理不会崩。设置里只存"当前用哪一套"的 id；
 模板被删掉时该情况自动回退默认文本。**手动编辑这个文件后需要重启桌面端**（客户端启动时加载一次）。
+
+## 外部推送（21 渠道）
+
+除了 Windows Toast，同一条通知还能推到手机 / 聊天软件 / 邮箱（青龙、MAA、三月七小助手那套多路推送）。
+在 **设置 → 通知 → 「外部推送」** 卡里「添加渠道」，选类型、填字段、保存；「测试」单测一个渠道，「全部测试」测所有启用渠道。
+每个渠道独立投递，一条失败不影响其它。
+
+**触发规则。** 推送和 Toast 同源：只有"该提醒"且 **DSH 不在前台**时才推——人在电脑前不会轰炸；总开关、各情况、子代理、当前会话开关都生效。
+
+**存在哪里。** 渠道和密钥保存在 `%LOCALAPPDATA%\dsh-notify\channels.json`（不进浏览器 localStorage），写入走临时文件 + rename。手动改文件后需重启桌面端。
+
+**逐渠道填什么。** `*` 为必填；其余可留空。
+
+| 渠道 | 必填 | 选填 | 说明 / 示例 |
+|---|---|---|---|
+| 自动识别 | 粘贴任意* | — | 按域名/前缀自己判断：群机器人 URL、Server酱 key、Bark key、ntfy 主题、任意 https → 通用 webhook；识别不了会提示改选具体渠道 |
+| 通用 Webhook | URL* | 请求头(JSON) | POST `{title,message,level,scenario,source,timestamp}`；2xx 即成功 |
+| Bark | 设备 Key* | 服务器/铃声/分组 | 服务器默认 `https://api.day.app` |
+| Server酱 | SendKey* | — | `SCT…`（Turbo → `sctapi.ftqq.com`）或 `sctp…`（Server酱³ → `{uid}.push.ft07.com`）；从 https://sct.ftqq.com 取 key |
+| PushPlus | Token* | 主题 | `www.pushplus.plus` |
+| 企业微信 | Webhook Key* | — | 群机器人的 key |
+| 钉钉 | URL* | 加签密钥 | 机器人 webhook；填密钥自动加签 |
+| 飞书 | URL* | 加签密钥 | 自定义机器人 webhook；填密钥自动加签 |
+| Telegram | Bot Token* / Chat ID* | API 地址 | 默认 `https://api.telegram.org` |
+| ntfy | 主题* | 服务器/Token | 默认 `https://ntfy.sh` |
+| Gotify | 服务器* / Token* | 优先级 | 如 `https://gotify.example.com` |
+| Slack | URL* | — | incoming webhook |
+| Discord | URL* | — | webhook |
+| WxPusher | AppToken* | UID / 主题 ID | UID 单推；主题 ID 逗号分隔广播 |
+| PushDeer | PushKey* | 服务器 | 默认 `https://api2.pushdeer.com` |
+| Qmsg酱 | Qmsg Key* | 收件 QQ | `qmsg.zendee.cn` |
+| MeoW | 昵称* | 服务器 | 默认 `https://api.chuckfang.com` |
+| KOOK | Token* / 目标 ID* | — | 机器人 token + 频道/用户 id |
+| OneBot (QQ) | 服务器* / 目标* | 消息类型 | go-cqhttp 等；`http://127.0.0.1:5700`；private/group + QQ/群号 |
+| Matrix | 服务器* / 房间 ID* / Token* | — | 房间如 `!abc:example.com` + access token |
+| Pushover | Token* / 用户 Key* | — | application token + user key |
+| 邮件 (SMTP) | 服务器* / 端口* / 发件人* / 收件人* | 加密/用户名/密码 | 465=ssl、587=starttls、25=none；收件人逗号分隔 |
+
+**每个渠道还能单独定制：**
+
+- **适用情况** —— 勾选这个渠道只接收哪些情况（正常完成/出错/等待审批…）；一个都不勾 = 全部。比如只让「出错」推到值班群。
+- **标题/正文模板（可选）** —— 给这个渠道单独一套文案，留空就沿用「通知自定义」里的默认文本；占位符同默认文本 `{工作区} {状态} {内容} {分钟}`。
+- **Markdown 富文本** —— 企微 / 钉钉 / 飞书勾上后按 markdown 发送（企业微信 `msgtype=markdown`、钉钉 markdown 消息、飞书卡片 markdown）。
+- **Webhook 自定义 JSON body（仅通用 Webhook）** —— 用自己的 JSON 结构，占位符 `{title} {body} {level} {scenario} {source} {timestamp}` 以及 `{工作区} {状态} {内容} {分钟}`；值自动做 JSON 转义，渲染后不是合法 JSON 会报错。留空则用默认结构。
+
+**SMTP 加密。** `ssl` = 465 隐式 TLS；`starttls` = 587 先明文再升级 TLS；`none` = 明文。认证用 AUTH LOGIN（用户名 + 密码）。
+
+**配置文件长这样**（一般不用手改，界面填即可）：
+
+```json
+{
+  "version": 1,
+  "channels": [
+    { "id": "ch_a1b2c3d4e5f6", "type": "bark", "enabled": true, "label": "我的 iPhone",
+      "fields": { "deviceKey": "你的key", "server": "", "sound": "", "group": "dsh" } },
+    { "id": "ch_f6e5d4c3b2a1", "type": "dingtalk", "enabled": true, "label": "钉钉群",
+      "fields": { "url": "https://oapi.dingtalk.com/robot/send?access_token=…", "secret": "SEC…" } }
+  ]
+}
+```
 
 ## 兼容性
 

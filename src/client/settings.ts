@@ -17,6 +17,7 @@ import {
   PLUGIN_LANGUAGES,
   REMINDER_MODES,
   SOUND_IDS,
+  SUBAGENT_MODES,
   type LegacyTextTemplates,
   type NotifyMode,
   type PluginLanguage,
@@ -25,6 +26,7 @@ import {
   type NotifyTexts,
   type ReminderMode,
   type SoundId,
+  type SubagentMode,
 } from '../types.ts'
 import {
   SCENARIO_IDS,
@@ -81,6 +83,11 @@ function clampLanguage(value: unknown): PluginLanguage {
   return (PLUGIN_LANGUAGES as readonly string[]).includes(value as string)
     ? value as PluginLanguage
     : DEFAULT_SETTINGS.language
+}
+
+/** One subagent notification mode, or the default for anything unknown. */
+function clampSubagentMode(value: unknown): SubagentMode {
+  return (SUBAGENT_MODES as readonly string[]).includes(value as string) ? value as SubagentMode : DEFAULT_SETTINGS.subagentMode
 }
 
 /** A library id: what a folder listing produced, and the only ids not in SOUND_IDS. */
@@ -204,9 +211,11 @@ export function readSettings(storage: SettingsStorage | undefined = ambientStora
       notifyAborted: clampBoolean(saved['notifyAborted'], DEFAULT_SETTINGS.notifyAborted),
       notifyBlocked: clampBoolean(saved['notifyBlocked'], DEFAULT_SETTINGS.notifyBlocked),
       notifyMaxTokens: clampBoolean(saved['notifyMaxTokens'], DEFAULT_SETTINGS.notifyMaxTokens),
+      subagentMode: clampSubagentMode(saved['subagentMode']),
       notifyApproval: clampBoolean(saved['notifyApproval'], DEFAULT_SETTINGS.notifyApproval),
       notifyQuestion: clampBoolean(saved['notifyQuestion'], DEFAULT_SETTINGS.notifyQuestion),
       notifyPlanReview: clampBoolean(saved['notifyPlanReview'], DEFAULT_SETTINGS.notifyPlanReview),
+      notifyViewedUnfocused: clampBoolean(saved['notifyViewedUnfocused'], DEFAULT_SETTINGS.notifyViewedUnfocused),
       remindAfterMinutes: clampMinutes(saved['remindAfterMinutes']),
       reminderMode: clampReminderMode(saved['reminderMode']),
       remindEveryMinutes: clampMinutes(saved['remindEveryMinutes']),
@@ -259,6 +268,9 @@ export function createSettingsStore(storage: SettingsStorage | undefined = ambie
         mode: patch.mode === undefined ? snapshot.mode : clampMode(patch.mode),
         // Only clamp what the patch actually carries: a patch that touches one
         // boolean used to rebuild both nine-key maps on every keystroke.
+        subagentMode: patch.subagentMode === undefined
+          ? snapshot.subagentMode
+          : clampSubagentMode(patch.subagentMode),
         remindAfterMinutes: patch.remindAfterMinutes === undefined
           ? snapshot.remindAfterMinutes
           : clampMinutes(patch.remindAfterMinutes),

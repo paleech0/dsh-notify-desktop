@@ -353,6 +353,48 @@ export const cssText = `
 }
 .dsh_notify_confirm .dsh_notify_button { height: 26px; padding: 0 10px; font-size: 12px; }
 
+/* The external-push channel list: one row per channel, actions pushed right. */
+.dsh_notify_card .dsh_notify_pushList {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dsh_notify_card .dsh_notify_pushItem {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  border: 1px solid transparent;
+}
+.dsh_notify_card .dsh_notify_pushItem:hover {
+  background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.1));
+  border-color: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.2));
+}
+.dsh_notify_pushItem .dsh_notify_rowLabel { font-size: 12.5px; }
+.dsh_notify_pushItem .dsh_notify_rowDesc { opacity: 0.7; }
+.dsh_notify_pushActions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.dsh_notify_pushForm {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.22));
+  background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.06));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dsh_notify_pushFormRow { display: flex; align-items: center; gap: 10px; }
+.dsh_notify_pushFormLabel { flex: 0 0 132px; font-size: 12px; opacity: 0.8; }
+.dsh_notify_pushFormRow .dsh_notify_renameInput { flex: 1 1 auto; }
+.dsh_notify_pushScenarios { flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.dsh_notify_pushScenario { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
+
 /*
  * The two-level pickers: the trigger keeps the old select's footprint, the
  * panel floats above the card with the section headers as level one.

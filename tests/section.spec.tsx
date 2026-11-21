@@ -145,7 +145,7 @@ function scenarioNames(container: HTMLElement): string[] {
 }
 
 describe('notification settings section', () => {
-  it('renders the three cards in order with every enabled situation row', async () => {
+  it('renders the four cards in order with every enabled situation row', async () => {
     const { container } = await render()
     const cardTitles = [...container.querySelectorAll('.dsh_notify_cardTitle')]
       .map(node => node.textContent ?? '')
@@ -153,11 +153,13 @@ describe('notification settings section', () => {
       zh['settings.title'],
       zh['settings.situations.title'],
       zh['settings.customize.title'],
+      zh['settings.push.title'],
     ])
-    // eight situation switches: five outcomes + three waiting kinds
-    expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(9)
-    // three delivery radios
-    expect(container.querySelectorAll('input[type="radio"]')).toHaveLength(3)
+    // ten switches: the master switch, five outcome toggles, three waiting
+    // toggles, and the viewed-session toggle
+    expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(10)
+    // three delivery radios plus the three subagent gears
+    expect(container.querySelectorAll('input[type="radio"]')).toHaveLength(6)
     // the test notification belongs to the first card
     expect(buttons(container, zh['settings.test.button'])).toHaveLength(1)
     // every enabled situation gets one row; aborted is off by default
@@ -319,10 +321,11 @@ describe('notification settings section', () => {
       testButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
     expect(tested).toBe(0)
-    // The situations are off-limits with the master off too.
+    // The situations are off-limits with the master off too (the viewed-session
+    // toggle is the ninth).
     const situations = [...container.querySelectorAll('input[type="checkbox"]')]
       .filter(node => node.id.startsWith('dsh-notify-notify')) as HTMLInputElement[]
-    expect(situations).toHaveLength(8)
+    expect(situations).toHaveLength(9)
     for (const box of situations) expect(box.disabled).toBe(true)
     expect((container.querySelector('input[type="number"]') as HTMLInputElement).disabled).toBe(true)
     // The configuration surfaces stay live: both collapse headers and the add button.

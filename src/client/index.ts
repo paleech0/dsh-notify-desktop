@@ -78,6 +78,7 @@ import {
 import { NotifySettingsSection, type NotifySectionInjected } from './SettingsSection.tsx'
 import { createSettingsStore } from './settings.ts'
 import { createTextStore } from './texts.ts'
+import { pushNotification } from './channels.ts'
 import { adoptStyles } from './styles.ts'
 
 /**
@@ -85,6 +86,15 @@ import { adoptStyles } from './styles.ts'
  * registry, and the remote channel that forwards questions.
  */
 export const inject = ['sessions', 'slots', 'locale']
+
+/**
+ * The list-row field this half reads beyond the published `SessionListState`:
+ * a delegated child row carries `origin: 'subagent'` (the sidebar hides those
+ * rows by the same field), while an ordinary or forked conversation has none.
+ */
+interface SessionRowOrigin {
+  readonly origin?: 'subagent'
+}
 
 /** The slice of the sessions service this plugin reads. */
 interface SessionsListFace {
@@ -96,7 +106,8 @@ interface SessionsListFace {
 
 /** The slice of the workspace service this plugin uses. */
 interface WorkspaceFace {
-  openSession?(sessionId: string): void
+  /** `openSession` takes a session id or a subagent address; we only need the id. */
+  openSession?(target: unknown): void
 }
 
 /** How often unanswered waits are re-checked, in milliseconds. */
@@ -153,6 +164,45 @@ export function apply(ctx: ClientContext): void {
   const sessions = ctx.get('sessions') as unknown as SessionsListFace
   const workspace = ctx.get('uiWorkspace') as WorkspaceFace | undefined
   const recent = new Map<string, number>()
+  /**
+   * The session the user is currently viewing: the last one they opened in the
+   * sidebar. DSH exposes no "currently open session" signal, so we learn it by
+   * observing `openSession`. Until the first navigation it is undefined, and the
+   * per-session muting rule then simply does nothing.
+   */
+  let activeSessionId: string | undefined = undefined
+  /**
+   * Extract a session id from an `openSession` argument (a bare id, or a
+   * subagent address carrying one) and remember it as the viewed session.
+   * @param target - the argument the workspace service was called with.
+   */
+  const trackViewedSession = (target: unknown): void => {
+    const id = typeof target === 'string'
+      ? target
+      : (target !== null && typeof target === 'object' && typeof (target as { sessionId?: unknown }).sessionId === 'string'
+        ? (target as { sessionId: string }).sessionId
+        : undefined)
+    if (id !== undefined) activeSessionId = id
+  }
+  // Observe every `openSession` navigation by wrapping the method on the same
+  // service instance the UI uses. A sidebar click then records the viewed
+  // session. If the instance cannot be patched, the feature degrades to a no-op
+  // rather than throwing.
+  if (workspace !== undefined && typeof workspace.openSession === 'function') {
+    const originalOpen = (workspace.openSession as (target: unknown) => void).bind(workspace)
+    try {
+      Object.defineProperty(workspace, 'openSession', {
+        configurable: true,
+        writable: true,
+        value: (target: unknown): void => {
+          trackViewedSession(target)
+          originalOpen(target)
+        },
+      })
+    } catch {
+      report('could not observe openSession; viewed-session muting disabled')
+    }
+  }
   /** Last logged projection shape per session (diagnostics only). */
   const seenShape = new Map<string, string>()
   const observedTurn = new Map<string, number>()
@@ -177,6 +227,12 @@ export function apply(ctx: ClientContext): void {
       { focusWindow: () => focusWindowRequest(), openSession: (id: string) => workspace?.openSession?.(id) },
       sessionId,
     )
+  }
+
+  /** Whether a session is a delegated child (a `subagent` row on the list). */
+  const isSubagentSession = (sessionId: string): boolean => {
+    const rows = sessions.list.getSnapshot().byId as unknown as Record<string, SessionRowOrigin | undefined>
+    return rows[sessionId]?.origin === 'subagent'
   }
 
   /**
@@ -224,6 +280,45 @@ export function apply(ctx: ClientContext): void {
       case 'reminder':
         return fmt(t('notify.reminderBody'), { minutes: String(store.getSnapshot().remindAfterMinutes) })
     }
+  }
+
+  /**
+   * Mirror one situation out to the external channels (Bark / Telegram / …).
+   *
+   * It rides the same decision that raised the toast, so it fires exactly when
+   * the toast would (never while the window is focused, per the subagent gears,
+   * or for a muted viewed session) — pushing to the phone only when the user is
+   * away. The title/body come from the same template the toast uses. Level is a
+   * coarse severity for the channels that rank messages.
+   * @param scenario - the situation being announced.
+   * @param parts - the live placeholder values.
+   * @param fallbackBody - the line used when the body has no content.
+   */
+  const emitExternal = (
+    scenario: NotifyScenario,
+    parts: { readonly workspace: string; readonly status: string; readonly body: string; readonly minutes?: string },
+    fallbackBody: string,
+  ): void => {
+    const text = textFor(scenario, parts, fallbackBody)
+    const level = scenario === 'error'
+      ? 'error'
+      : scenario === 'approval' || scenario === 'question' || scenario === 'plan-review' || scenario === 'reminder'
+        ? 'warning'
+        : 'info'
+    pushNotification({
+      title: text.title,
+      body: text.body,
+      level,
+      scenario,
+      source: parts.workspace,
+      timestamp: Date.now(),
+      vars: {
+        '工作区': parts.workspace,
+        '状态': parts.status,
+        '内容': parts.body,
+        '分钟': parts.minutes ?? '',
+      },
+    })
   }
 
   /**
@@ -278,6 +373,8 @@ export function apply(ctx: ClientContext): void {
     readonly source: 'projection' | 'host queue'
     /** The toast title label: the workspace name, or '' when unknown. */
     readonly label: string
+    /** The owning session's list origin, when the caller already knows it. */
+    readonly sessionOrigin?: 'subagent'
   }
 
   /**
@@ -293,6 +390,10 @@ export function apply(ctx: ClientContext): void {
     const settings = store.getSnapshot()
     const now = Date.now()
     const focused = isFocused()
+    const sessionOrigin = ask.sessionOrigin ?? (isSubagentSession(ask.sessionId) ? 'subagent' : undefined)
+    // The `silent` gear drops a child's waits entirely: no toast, and no wait
+    // entry either, so its reminder cannot fire later.
+    const silencedChild = sessionOrigin === 'subagent' && settings.subagentMode === 'silent'
     const where = ask.kind + ' ' + ask.requestId + ' (' + ask.source + ')'
     const shared = askKey(ask.summary)
     if (ask.kind !== 'approval' && recentlyKeyed(recent, shared, now, ASK_TWIN_MS)) {
@@ -303,22 +404,29 @@ export function apply(ctx: ClientContext): void {
       settings,
       trigger: { kind: 'pending', pending: ask.kind },
       sessionId: ask.sessionId,
+      ...(sessionOrigin === undefined ? {} : { sessionOrigin }),
+      ...(activeSessionId === undefined ? {} : { activeSessionId }),
       focused,
       dedupeKey: ask.sessionId + ':request:' + ask.requestId,
       now,
       recent,
     })
-    waits.set(waitKey(ask.sessionId, ask.requestId), {
-      key: waitKey(ask.sessionId, ask.requestId),
-      sessionId: ask.sessionId,
-      requestId: ask.requestId,
-      kind: ask.kind,
-      summary: ask.summary,
-      firstSeenAt: ask.firstSeenAt,
-      reminded: false,
-      lastRemindedAt: 0,
-    })
-    const delivery = decision === null ? 'suppressed' : isSoundOnly(settings) ? 'sound-only' : 'toast'
+    if (!silencedChild) {
+      waits.set(waitKey(ask.sessionId, ask.requestId), {
+        key: waitKey(ask.sessionId, ask.requestId),
+        sessionId: ask.sessionId,
+        requestId: ask.requestId,
+        kind: ask.kind,
+        summary: ask.summary,
+        firstSeenAt: ask.firstSeenAt,
+        reminded: false,
+        lastRemindedAt: 0,
+      })
+    }
+    const mutedViewed = decision === null && !settings.notifyViewedUnfocused && activeSessionId !== undefined && ask.sessionId === activeSessionId
+    const delivery = decision === null
+      ? (silencedChild ? 'suppressed (subagent silent)' : mutedViewed ? 'suppressed (viewed session)' : 'suppressed')
+      : isSoundOnly(settings) ? 'sound-only' : 'toast'
     report('pending ' + where + ' focused=' + String(focused) + ' -> ' + delivery)
     if (decision === null) return
     const scenario = scenarioOfPending(ask.kind)
@@ -327,6 +435,7 @@ export function apply(ctx: ClientContext): void {
       status: t(shortScenarioKey(scenario)),
       body: plainSummary(ask.summary),
     }
+    emitExternal(scenario, parts, fallbackBodyOf(scenario))
     if (isSoundOnly(settings)) {
       // The sound-only mode never raises anything: the decision's sound goes to
       // the host's sound-only route and the ask stays invisible.
@@ -409,11 +518,14 @@ export function apply(ctx: ClientContext): void {
     const settings = store.getSnapshot()
     const now = Date.now()
     const focused = isFocused()
-    // 0.2.0-rc.2's SessionListState carries no "currently open session" signal,
-    // so the focused window is the whole suppression input here.
+    // Two suppression inputs: the focused window (nothing toasts while the user
+    // is in front of the app), and the session the user is currently viewing
+    // (tracked via `openSession`, because DSH exposes no "currently open session"
+    // signal of its own). In the background the viewed session is muted only when its always-mute switch is off; while focused the window rule above already covers it.
     for (const id of state.ids) {
       const summary = state.byId[id]
       if (summary === undefined) continue
+      const sessionOrigin = (summary as unknown as SessionRowOrigin).origin
       const projection = summary.projectionValues?.[NOTIFY_PROJECTION_KEY]
       // The cheap shape is the whole comparison key. Building the pending id
       // list and the workspace name for every session on every tick was the
@@ -450,12 +562,18 @@ export function apply(ctx: ClientContext): void {
             settings,
             trigger: { kind: 'turn', reason },
             sessionId: id,
+            ...(sessionOrigin === undefined ? {} : { sessionOrigin }),
+            ...(activeSessionId === undefined ? {} : { activeSessionId }),
             focused,
             dedupeKey,
             now,
             recent,
           })
-        const delivery = decision === null ? 'suppressed' : isSoundOnly(settings) ? 'sound-only' : 'toast'
+        const mutedSubagent = decision === null && sessionOrigin === 'subagent'
+        const mutedViewed = decision === null && !settings.notifyViewedUnfocused && activeSessionId !== undefined && id === activeSessionId
+        const delivery = decision === null
+          ? (mutedSubagent ? 'suppressed (subagent ' + settings.subagentMode + ')' : mutedViewed ? 'suppressed (viewed session)' : 'suppressed')
+          : isSoundOnly(settings) ? 'sound-only' : 'toast'
         report('turn ' + String(projection.turn) + ' reason=' + String(reason)
           + ' focused=' + String(focused) + ' -> ' + delivery)
         if (decision !== null && reason !== undefined) {
@@ -465,6 +583,7 @@ export function apply(ctx: ClientContext): void {
             status: t(shortScenarioKey(scenario)),
             body: plainSummary(projection.body),
           }
+          emitExternal(scenario, parts, fallbackBodyOf(scenario))
           if (isSoundOnly(settings)) {
             playSoundOnly(decision.sound)
           } else {
@@ -526,6 +645,7 @@ export function apply(ctx: ClientContext): void {
           firstSeenAt: now,
           source: 'projection',
           label: toastNameOf(summary),
+          ...(sessionOrigin === undefined ? {} : { sessionOrigin }),
         })
       }
       // A departure is the only way the observed set can outgrow the projection,
@@ -622,12 +742,18 @@ export function apply(ctx: ClientContext): void {
       if (wait.reminded && settings.reminderMode !== 'repeat') continue
       waits.set(due.key, { ...wait, reminded: true, lastRemindedAt: now })
       if (focused) continue
+      // The viewed session is redundant only when its always-mute switch is off; while focused the rule above already skips it.
+      if (!settings.notifyViewedUnfocused && activeSessionId !== undefined && due.sessionId === activeSessionId) continue
+      // A child session switched to `silent` after its wait was tracked must not
+      // remind either: that gear promises nothing at all from a child.
+      if (settings.subagentMode === 'silent' && isSubagentSession(due.sessionId)) continue
       const parts = {
         workspace: sessionLabel(due.sessionId),
         status: t(shortScenarioKey('reminder')),
         body: plainSummary(wait.summary),
         minutes,
       }
+      emitExternal('reminder', parts, fallbackBodyOf('reminder'))
       const sound = scenarioSound(settings, 'reminder')
       if (isSoundOnly(settings)) {
         playSoundOnly(sound)

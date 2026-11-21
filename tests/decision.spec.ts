@@ -50,6 +50,30 @@ describe('notification decision', () => {
     expect(decideNotification(input({ trigger: { kind: 'turn', reason: 'max-tokens' } }))).not.toBeNull()
   })
 
+  it('treats a subagent session per the chosen gear', () => {
+    // quiet (default): the finished turn is silent, waits still decide.
+    expect(decideNotification(input({ sessionOrigin: 'subagent' }))).toBeNull()
+    for (const pending of ['approval', 'question', 'plan-review'] as const) {
+      expect(decideNotification(input({
+        sessionOrigin: 'subagent',
+        trigger: { kind: 'pending', pending },
+      }))).not.toBeNull()
+    }
+    // all: the turn notifies like an ordinary session.
+    expect(decideNotification(input({
+      sessionOrigin: 'subagent',
+      settings: settings({ subagentMode: 'all' }),
+    }))).not.toBeNull()
+    // silent: even a wait is dropped.
+    expect(decideNotification(input({
+      sessionOrigin: 'subagent',
+      settings: settings({ subagentMode: 'silent' }),
+      trigger: { kind: 'pending', pending: 'approval' },
+    }))).toBeNull()
+    // An ordinary conversation is never affected by the gear.
+    expect(decideNotification(input({ settings: settings({ subagentMode: 'silent' }) }))).not.toBeNull()
+  })
+
   it('honours each blocking-interaction switch', () => {
     const approval = input({ trigger: { kind: 'pending', pending: 'approval' } })
     expect(decideNotification(approval)).not.toBeNull()
@@ -62,6 +86,21 @@ describe('notification decision', () => {
     // 0.2.0-rc.2 exposes no "currently open session", so focus is the whole input.
     expect(decideNotification(input({ focused: true }))).toBeNull()
     expect(decideNotification(input({ focused: false }))).not.toBeNull()
+  })
+
+  it('mutes the viewed session only when its always-mute switch is off', () => {
+    // Default (notifyViewedUnfocused on) + background: the viewed session notifies.
+    expect(decideNotification(input({ activeSessionId: 's1' }))).not.toBeNull()
+    expect(decideNotification(input({ activeSessionId: 's1', trigger: { kind: 'pending', pending: 'approval' } }))).not.toBeNull()
+    // Switch off: the viewed session (s1) is muted in every situation, even in the background.
+    expect(decideNotification(input({ activeSessionId: 's1', settings: settings({ notifyViewedUnfocused: false }) }))).toBeNull()
+    expect(decideNotification(input({ activeSessionId: 's1', settings: settings({ notifyViewedUnfocused: false }), trigger: { kind: 'pending', pending: 'approval' } }))).toBeNull()
+    // A different session still notifies.
+    expect(decideNotification(input({ activeSessionId: 's2' }))).not.toBeNull()
+    // No tracked session: nothing is muted by this rule.
+    expect(decideNotification(input({ sessionId: 's1' }))).not.toBeNull()
+    // Focused still suppresses everything, the viewed session included.
+    expect(decideNotification(input({ activeSessionId: 's1', focused: true }))).toBeNull()
   })
 
   it('drops a repeat of the same key inside the dedupe window but not after it', () => {

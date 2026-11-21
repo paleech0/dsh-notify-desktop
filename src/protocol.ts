@@ -105,3 +105,20 @@ export const SOUND_CACHE_ROUTE = '/dsh-notify/sound-cache'
  * between machines; only the chosen id stays in the client settings.
  */
 export const TEXT_TEMPLATES_ROUTE = '/dsh-notify/text-templates'
+
+/**
+ * The external-push channels: GET lists every configured channel, POST saves or
+ * deletes one and answers with the whole list. The channels (and their tokens)
+ * live host-side, so the renderer only ever sends/receives field values.
+ */
+export const CHANNELS_ROUTE = '/dsh-notify/channels'
+
+/**
+ * Deliver one notification to every enabled external channel (Bark, Telegram,
+ * 钉钉, 飞书, generic webhook, …). The host makes the outbound HTTPS requests
+ * because the renderer cannot (CORS); it answers with a per-channel receipt.
+ */
+export const PUSH_ROUTE = '/dsh-notify/push'
+
+/** Send a fixed test message to one channel (by id) or to every enabled one. */
+export const TEST_PUSH_ROUTE = '/dsh-notify/test-push'

@@ -95,6 +95,19 @@ describe('notification settings store', () => {
     expect(readSettings(memory({ [PERSIST_KEY]: '{}' })).legacyText).toBeNull()
   })
 
+  it('defaults the subagent gear to quiet and clamps unknown values', () => {
+    expect(readSettings(memory({ [PERSIST_KEY]: '{}' })).subagentMode).toBe('quiet')
+    for (const mode of ['silent', 'quiet', 'all'] as const) {
+      expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ subagentMode: mode }) })).subagentMode).toBe(mode)
+    }
+    // An unknown gear falls back to the default.
+    expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ subagentMode: 'loud' }) })).subagentMode).toBe('quiet')
+    // The store clamps writes the same way.
+    const store = createSettingsStore(memory())
+    store.update({ subagentMode: 'all' })
+    expect(store.getSnapshot().subagentMode).toBe('all')
+  })
+
   it('clamps the reminder delay into range', () => {
     expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ remindAfterMinutes: 0 }) })).remindAfterMinutes).toBe(1)
     expect(readSettings(memory({ [PERSIST_KEY]: JSON.stringify({ remindAfterMinutes: 9999 }) })).remindAfterMinutes).toBe(240)

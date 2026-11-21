@@ -207,6 +207,27 @@ export const REMINDER_MODES = Object.freeze(['once', 'repeat', 'sticky'] as cons
 /** One reminder behaviour. */
 export type ReminderMode = (typeof REMINDER_MODES)[number]
 
+/**
+ * How a background subagent session's notifications are treated.
+ *
+ * A delegated subagent session is a step inside its parent turn, not a
+ * conversation of its own, and the projection seam delivers it like any other
+ * session — so one delegation that spawns N children would otherwise raise N
+ * completion toasts.
+ *
+ * `silent`: nothing at all from a child session — its finished turns, its
+ * approvals and questions, and the reminder are all dropped. The quietest
+ * gear; a child that really stops for an approval will sit there unheard.
+ * `quiet` (default): its finished turn stays silent, but its approvals,
+ * questions and reminder still notify.
+ * `all`: every child session notifies exactly like an ordinary conversation —
+ * the behaviour before this switch existed.
+ */
+export const SUBAGENT_MODES = Object.freeze(['silent', 'quiet', 'all'] as const)
+
+/** One subagent notification mode. */
+export type SubagentMode = (typeof SUBAGENT_MODES)[number]
+
 /** The built-in title: what the composed title was before templates existed. */
 export const DEFAULT_TITLE_TEMPLATE = '{工作区} · {状态}'
 
@@ -245,12 +266,24 @@ export interface NotifySettings {
   readonly notifyAborted: boolean
   readonly notifyBlocked: boolean
   readonly notifyMaxTokens: boolean
+  /** How a background subagent session's notifications are treated. */
+  readonly subagentMode: SubagentMode
   /** Notify while a session waits for a tool-approval decision. */
   readonly notifyApproval: boolean
   /** Notify while a session waits for an answer to a question. */
   readonly notifyQuestion: boolean
   /** Notify while a session waits for a plan review. */
   readonly notifyPlanReview: boolean
+  /**
+   * When on, the session you are currently viewing (the one you last opened in
+   * the sidebar) still notifies you when DSH is in the background, because you
+   * are not looking at it then. When off, that session is muted in every
+   * situation — its outcome is already on screen. The foreground case is already
+   * covered by the window-focus suppression: while DSH has focus nothing toasts,
+   * the viewed session included. The client learns which session is viewed by
+   * observing `openSession`; DSH exposes no "currently open session" signal.
+   */
+  readonly notifyViewedUnfocused: boolean
   /** Minutes an unanswered blocking interaction may wait before one reminder. */
   readonly remindAfterMinutes: number
   /** What that reminder does: once, repeating, or a toast that stays until dismissed. */
@@ -303,9 +336,11 @@ export const DEFAULT_SETTINGS: NotifySettings = Object.freeze({
   notifyAborted: false,
   notifyBlocked: true,
   notifyMaxTokens: true,
+  subagentMode: 'quiet',
   notifyApproval: true,
   notifyQuestion: true,
   notifyPlanReview: true,
+  notifyViewedUnfocused: true,
   remindAfterMinutes: 10,
   reminderMode: 'once',
   remindEveryMinutes: 5,

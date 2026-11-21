@@ -4,6 +4,49 @@ All notable changes to this plugin are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **External push channels: send every notification to your phone / chat / mailbox, too.**
+  A new "External push" card delivers each notification, alongside the Windows toast, to any of
+  21 channels — Bark, Server酱, PushPlus, 企业微信, 钉钉, 飞书, Telegram, ntfy, Gotify, Slack,
+  Discord, WxPusher (uid or topic broadcast), PushDeer, Qmsg酱, MeoW, KOOK, OneBot (QQ), Matrix,
+  Pushover, SMTP and a generic webhook. Each channel is independent (one
+  failure never blocks the rest), and the push rides the same decision as the toast, so it fires
+  exactly when a toast would — i.e. only while DSH is in the background, never while it is
+  focused. The channels and their secrets live host-side in
+  `%LOCALAPPDATA%\dsh-notify\channels.json`, never in the browser. 钉钉 / 飞书 support HMAC
+  signing; SMTP is delivered over Node's built-in `net` / `tls` (implicit TLS on 465 or STARTTLS
+  on 587; no third-party mailer, keeping the host bundle self-contained). Each channel can narrow
+  which situations it receives, override the title/body template, and opt into markdown
+  (WeCom / DingTalk / Feishu); the generic webhook also accepts a custom JSON body template.
+
+- **The session you are currently viewing notifies when DSH is in the background.**
+  When you have a session open in the main pane and DSH is focused, nothing toasts
+  anyway (the existing window-focus suppression covers it). When DSH is in the
+  background, that session now notifies on completion, errors, waits and reminders —
+  you are not looking at it then — unless you turn the new switch
+  (`notifyViewedUnfocused`, default on) off, which mutes it in every situation. The
+  plugin learns which session you are viewing by observing every `openSession`
+  navigation (DSH exposes no "currently open session" signal of its own); the session
+  the app restores at launch is not tracked, but the window is focused then.
+
+- **Background subagent sessions no longer raise a toast storm, with three gears to choose from.**
+  DSH lists every delegated `subagent` session as its own session (`origin: 'subagent'`, hidden from
+  the sidebar by that field), so one delegation that spawns N children used to raise N completion
+  toasts. Card 2 now carries a three-way choice (`subagentMode`):
+  - `quiet` (**default**) — a subagent's finished turn is silent, so one delegation never storms;
+    its approvals, questions and the reminder still notify.
+  - `silent` — nothing at all from a subagent session, including its approvals, questions and
+    reminder; the quietest gear, at the risk of missing a child that really waits on you.
+  - `all` — every subagent session notifies like an ordinary conversation (the pre-0.2.2 behaviour).
+
+  The gate lives in the pure decision function (`subagentMuted`) and only matches rows whose
+  `origin` is `'subagent'`, so an ordinary conversation and a user's own fork are untouched. The
+  diagnostics ring labels a suppressed child turn `-> suppressed (subagent quiet|silent)` and a
+  dropped child wait `-> suppressed (subagent silent)`.
+
 ## [0.2.5] - 2026-11-07
 
 ### Fixed
